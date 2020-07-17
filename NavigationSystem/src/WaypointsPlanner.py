@@ -100,21 +100,22 @@ class WaypointsPlanner():
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import Simulation as si 
 
     way = WaypointsPlanner()
-    plt.scatter(way.waypoints[:, 0], way.waypoints[:, 1], marker=".")
+    sim = si.Simulation(way)
+
     current_goal_waypoint = np.array([0, 100, 1, 10])
     while way.available():
+        plt.cla()
+        sim.plot_ways()
         current_goal_waypoint = way.load_waypoint(current_goal_waypoint) 
+        sim.plot_vehicle(current_goal_waypoint)
+
         print("(%d/%d)= "%(way.current_idx, way.waypoints.shape[0]), end=" ")
         print("(%d, %d), %.3f rad, %.1f m/s"%(current_goal_waypoint[0], current_goal_waypoint[1], current_goal_waypoint[2], current_goal_waypoint[3] ))
 
         # Plot current goal waypoint
         plt.scatter(current_goal_waypoint[0], current_goal_waypoint[1], marker="o", color='red', alpha=0.5)
 
-        # Plot arrow
-        vel_vec = [current_goal_waypoint[3]*np.cos(current_goal_waypoint[2]), 
-                   current_goal_waypoint[3]*np.sin(current_goal_waypoint[2])]
-        plt.arrow(current_goal_waypoint[0], current_goal_waypoint[1], vel_vec[0], vel_vec[1], width=1 )
-    plt.show()
-
+        plt.pause(0.01)

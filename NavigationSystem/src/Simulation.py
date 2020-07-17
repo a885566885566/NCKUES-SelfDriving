@@ -7,17 +7,19 @@ class Car():
         """
         y ^
           |
-        lb|_____________ lt 
+        lb|_____________ lt(left top) 
           |             |   car moving direction
     (0,0) |-------------|------->x
-        rb|_____________|rt
+        rb|_____________|rt(right top)
            
         unit: m
         """
-        self.lt = np.array(( 1.3, 0.5))
-        self.rt = np.array(( 1.3, -0.5))
-        self.lb = np.array(( 0, 0.5))
-        self.rb = np.array(( 0, -0.5))
+        self.car_length = 1.3
+        self.car_width = 1
+        self.lt = np.array(( self.car_length, self.car_length//2))
+        self.rt = np.array(( self.car_length, -self.car_length//2))
+        self.lb = np.array(( 0,  self.car_length//2))
+        self.rb = np.array(( 0, -self.car_length//2))
 
 class Simulation():
     def __init__(self, wayplanner, car_scale):
@@ -25,6 +27,9 @@ class Simulation():
         self.car = Car()
         self.scale = car_scale
 
+    """
+    Plot waypoints given by waypoints planner.
+    """
     def plot_ways(self):
         plt.scatter(self.waypoints[:, 0], self.waypoints[:, 1], marker=".")
         return
