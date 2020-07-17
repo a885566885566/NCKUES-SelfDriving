@@ -19,11 +19,17 @@ class MotionPlanner():
     """
     Create potential path.
     Input: 
-        current_state: 4d nparray, in global coordinate 
-        goal_waypoint: 4d nparray, in global coordinate
+        current_state: 1d nparray, in global coordinate 
+            A 1d array which contains the current information 
+            of the vehicle, like x, y, yaw, velocity.
+            format:[x_point, y_point, yaw, velocity]
+        goal_waypoint: 1d nparray, in global coordinate
+            A state for the vehicle to reach in global coordinate.
         num_of_points: odd number, number of point in target_set
         offset: number, distance between `target_set` points 
+
     Output:
+        path_set
         path: 2d Array in local coordinate.
     """
     def generate_path(self, current_state, goal_waypoint, num_of_points, offset):
@@ -43,11 +49,31 @@ class MotionPlanner():
         return
 
     """
-    Make score to a specific path.
-    Output: 
-        score, number
+    Get the obstacle information and check if the path's validity.
+    Input:
+        paths, obstacles
+    Ouput:
+        path_validity: 1d array of boolen value to classify whether a path is collision-free(True), or not(False). 
     """
-    def make_score(self, path, goal_state):
+    def collision_checker(self, paths, obstacles):
+        return
+    
+    """
+    Make score to a specific path.
+    Input:
+        path_set: A list of path in the local coordinate.
+        path: A 2d nparray in local coordinate, Content is a list of points.
+            format: [[x_points, y_point, t, velocity]
+                     [                              ]
+                     ................................]
+        goal_state: current goal waypoint for the vehicle to reach in local coordinate.
+            format: [x_goal, y_goal, t, v_goal]
+        
+    Output:
+        score: A 1d array to indicate the score of the specific path. 
+    """
+    def make_score(self, path_set, current_goal_waypoint):
+        
         return
 
     """
