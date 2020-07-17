@@ -26,6 +26,7 @@ Return:
 def trans_local_to_global(current_state, point, scale=1):
     RM = get_rotation_matrix(current_state[2])
     # Broacasting plus
+    kk = np.matmul(RM, point.T).T
     new_p = current_state[0:2] + np.matmul(RM, point.T).T * scale
     return np.squeeze(new_p)
 

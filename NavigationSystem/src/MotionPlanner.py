@@ -35,11 +35,17 @@ class MotionPlanner():
         path: 2d Array in local coordinate.
     """
     def generate_path(self, current_state, goal_waypoint, num_of_points, offset):
-        target_set = self.generate_target_set(current_state, num_of_points, offset)
-        pass
+        target_set = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
+        path_pts = self.interpolate_path(target_set)
+        return target_set, path_pts
 
     """
     Generate `target_set`
+    Input:
+        current_state:  1d nparray
+        goal_waypoint:  1d nparray
+        num_of_points:  odd integer, number of target set
+        offset:         number, distance between target set
     """
     def generate_target_set(self, current_state, goal_waypoint, num_of_points, offset):
         self.target_set = np.zeros((num_of_points, 4))
@@ -52,20 +58,46 @@ class MotionPlanner():
         mid_idx = num_of_points // 2
         vec_delta = offset * np.array((goal_state[1], goal_state[0])) / np.linalg.norm(goal_state[0:2])
 
-        self.target_set[mid_idx] = goal_state 
+        target_set = np.zeros((num_of_points, 4))
+        target_set[mid_idx] = goal_state 
         for i in range(1, mid_idx+1):
-            self.target_set[mid_idx+i] = goal_state 
-            self.target_set[mid_idx-i] = goal_state 
-            self.target_set[mid_idx+i][0:2] += i*vec_delta 
-            self.target_set[mid_idx-i][0:2] -= i*vec_delta 
+            target_set[mid_idx+i] = goal_state 
+            target_set[mid_idx-i] = goal_state 
+            target_set[mid_idx+i][0:2] += i*vec_delta 
+            target_set[mid_idx-i][0:2] -= i*vec_delta 
                
-        return self.target_set 
+        return target_set 
     
     """
-    Interpolate path with target set in local coordinate.
+    Interpolate path with cubic spline in local coordinate.
+    Start from (0, 0) end to target_set, second and third 
+    derivative were set to zero. Other boundary conditions:
+    (0, 0):   f(0) =0,  f'(0) =0
+    (x1, y1): f(x1)=y1, f'(x1)=dy/dx=tan(theta)
+    S(x) = a*x^3 + b*x^2
+
+    Input:
+        target_set: 2d nparray
+        num_of_interpolate: integer, number of point in each spline
+    Return:
+        path_points: each point of the path, shape in 
+            [numb_of_points, num_of_interpolate, 2]
+        a:  2d nparray, [number_of_points]
+        b:  2d nparray, [number_of_points]
     """
-    def interpolate_path(self, target_set):
-        return
+    def interpolate_path(self, target_set, num_of_interpolate=10):
+        #a = np.tan(target_set[:, 2]) / (3 * np.square(target_set[:,0]))
+        #b = target_set[:,1] / np.square(target_set[:,0]) - np.tan(target_set[:, 2]) / (3 * target_set[:,0])
+        tan_t = np.tan(target_set[:,2])
+        x1 = target_set[:,0]
+        y1 = target_set[:,1]
+        x1_2 = np.square(x1)    # square of x1
+
+        b = 3*y1/x1_2 - tan_t/x1
+        a = (tan_t-2*b*x1)/(3*x1_2)
+        x = np.linspace(0, target_set[:,0], num_of_interpolate)
+        y = a*np.power(x, 3) + b*np.square(x)
+        return np.stack((x.T,y.T), axis=-1)
 
     """
     Get the obstacle information and check if the path's validity.
@@ -153,12 +185,14 @@ if __name__ == "__main__":
         current_goal_waypoint = way.load_waypoint(current_state) 
         sim.plot_vehicle(current_state)
 
-        target_set = mp.generate_target_set(current_state, current_goal_waypoint, 11, 10)
+        target_set, path_pts = mp.generate_path(current_state, current_goal_waypoint, 11, 2)
 
-        sim.scatter_with_local(current_state, target_set[:,0:2], 'o', 'red')
+        sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
+        for path in path_pts:
+            sim.plot_with_local(current_state, path, 'g-')
 
         current_state = current_goal_waypoint 
-        plt.pause(0.1)
+        plt.pause(0.01)
 
     """        
 

@@ -37,10 +37,9 @@ class Simulation():
     """
     Plot line segment with point given in local coordinate.
     """
-    def plot_with_local(self, current_state, start, end, args, scale=1):
-        n_start = Utils.trans_local_to_global(current_state, start, scale)
-        n_end   = Utils.trans_local_to_global(current_state, end, scale)
-        plt.plot([n_start[0], n_end[0]], [n_start[1], n_end[1]], args)
+    def plot_with_local(self, current_state, points, args, scale=1):
+        n_pts = Utils.trans_local_to_global(current_state, points, scale)
+        plt.plot(n_pts[:,0], n_pts[:,1], args)
         return 
 
     """
@@ -55,10 +54,10 @@ class Simulation():
         return 
 
     def plot_vehicle(self, current_state, scale=10):
-        self.plot_with_local(current_state, self.car.rb, self.car.lb, 'r-', scale)
-        self.plot_with_local(current_state, self.car.rt, self.car.lt, 'g-', scale)
-        self.plot_with_local(current_state, self.car.lt, self.car.lb, 'k-', scale)
-        self.plot_with_local(current_state, self.car.rt, self.car.rb, 'k-', scale)
+        self.plot_with_local(current_state, np.array( [self.car.rb, self.car.lb]), 'r-', scale)
+        self.plot_with_local(current_state, np.array( [self.car.rt, self.car.lt]), 'g-', scale)
+        self.plot_with_local(current_state, np.array( [self.car.lt, self.car.lb]), 'k-', scale)
+        self.plot_with_local(current_state, np.array( [self.car.rt, self.car.rb]), 'k-', scale)
 
         vec = current_state[3] * np.array(
                 [np.cos(current_state[2]),
