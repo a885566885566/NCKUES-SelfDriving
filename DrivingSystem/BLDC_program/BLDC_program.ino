@@ -4,7 +4,7 @@
 
 COMMAND cmd;
 extern CONTROL motor;
-BEEPER_CONFIG buzzer;
+extern BEEPER_CONFIG buzzer;
 void setup(){
     pin_init();
     system_init();
@@ -13,24 +13,32 @@ void setup(){
     control_init(&motor);
     ISR_enable();
     utils_beep_init(&buzzer, PIN_BUZZER);
-    utils_beep_set(&buzzer, 1, 100, 3);
+    utils_beep_set(&buzzer, 1, 35, 2);
 }
 
 void loop(){
     //utils_beep_update(&buzzer);
     
     motor_key(true, CONF_MOTOR_CW);
-    
-    for(float i=0; i<10; i+=0.1){
-        //PIDsetTarget( &(motor.pid_current), i );
-        PIDsetTarget( &(motor.pid_velocity), i );
+    /*
+    for(float i=0; i<0.6; i+=0.01){
+        PIDsetTarget( &(motor.pid_current), i );
         delay(20);
     }
     delay(3000);
-    for(float i=10; i>0; i-=0.1){
-        //PIDsetTarget( &(motor.pid_current), i );
-        PIDsetTarget( &(motor.pid_velocity), i );
+    for(float i=0.6; i>0; i-=0.01){
+        PIDsetTarget( &(motor.pid_current), i );
         delay(20);
+    }*/
+
+    for(float i=0; i<30; i+=0.1){
+        PIDsetTarget( &(motor.pid_velocity), i );
+        delay(2);
+    }
+    delay(3000);
+    for(float i=30; i>0; i-=0.1){
+        PIDsetTarget( &(motor.pid_velocity), i );
+        delay(2);
     }
     motor_key(false, CONF_MOTOR_CW);
     delay(1000);

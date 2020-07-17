@@ -32,6 +32,7 @@ double PID_update(volatile PID_STRUCT *pid_t, double current){
   
   // Calculate Intergral
   pid_t->intergral = pid_t->intergral + pid_t->error*pid_t->dt/1000.0;
+  pid_t->intergral = constrain(pid_t->intergral, pid_t->lowerBound, pid_t->upperBound);
   double I_out = pid_t->ki * pid_t->intergral;
   
   // Calculate Differential

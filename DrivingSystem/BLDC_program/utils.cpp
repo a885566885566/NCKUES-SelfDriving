@@ -2,6 +2,7 @@
 #include "Arduino.h"
 
 bool motor_direction_key = CONF_MOTOR_CW;
+double CURRENT_SENSOR_BASE = 0;
 
 void pin_init(){
   /* ---- OUTPUT ---- */
@@ -29,6 +30,14 @@ void system_init(){
   digitalWrite(PIN_TD, CONF_DEAD_TIME);
   digitalWrite(PIN_LA, LOW);
   digitalWrite(PIN_VE, LOW);
+
+  /* Current sensor initialization */
+  CURRENT_SENSOR_BASE = 0; 
+  for (int i =0; i<50; i++){
+    CURRENT_SENSOR_BASE += analogRead(PIN_CUR_A);
+    delay(10);
+  }
+  CURRENT_SENSOR_BASE /= 50;
 }
 
 bool system_check(){
@@ -58,9 +67,9 @@ void write_motor(double velocity){
  * expontial decay filter built in. */
 double read_current(){
   // expontial dacay filter
-  static double analog = CONF_CURRENT_BASELINE;
+  static double analog = CURRENT_SENSOR_BASE;
   analog = analog * CONF_CURRENT_FILTER_DECAY + analogRead(PIN_CUR_A) * (1-CONF_CURRENT_FILTER_DECAY);
-  return (analog - CONF_CURRENT_BASELINE)*150.0/512;
+  return (analog - CURRENT_SENSOR_BASE)*150.0/512;
 }
 
 /* Setup buzzer pin */
@@ -83,8 +92,10 @@ void utils_beep_update(volatile BEEPER_CONFIG* beeper){
   uint32_t diff = millis() - beeper->starting;
   switch(beeper->mode){
     case 1:
-      if( diff > 2 * beeper->times * beeper->dur )
-        beeper->mode = 0;
+      if( diff > 2 * beeper->times * beeper->dur ){
+        beeper->mode = 0; 
+        digitalWrite(beeper->beepPort, LOW);
+      }
       else if( (diff/beeper->dur)%2 == 1 )
         digitalWrite(beeper->beepPort, HIGH);
       else

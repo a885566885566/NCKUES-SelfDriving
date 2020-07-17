@@ -44,10 +44,10 @@
 #define CONF_ENCODER_TS 100      // 50 ms, approximate speed with 10Hz
 #define CONF_ENCODER_TS_COUNT 200// 100 ms / 500 us, approximate speed with 10Hz
 
-#define CONF_CONTROL_CURRENT_DT  10     // current feedback loop 10 ms
-#define CONF_CONTROL_CURRENT_COUNT  20  // 20 * 500 us = 10 ms
-#define CONF_CONTROL_VELOCITY_DT  100   // velocity feedback loop 100 ms
-#define CONF_CONTROL_VELOCITY_COUNT 200 // 200 * 500 us = 100 ms
+#define CONF_CONTROL_CURRENT_DT  1     // current feedback loop 1 ms
+#define CONF_CONTROL_CURRENT_COUNT  2  // 2 * 500 us = 1 ms
+#define CONF_CONTROL_VELOCITY_DT  10   // velocity feedback loop 10 ms
+#define CONF_CONTROL_VELOCITY_COUNT 20 // 20 * 500 us = 10 ms
 
 #define CONF_MODE_MOTOR 'M'     // motor, drive motor to specific speed 
 #define CONF_MODE_STOP  'S'     // stop, stop and release motor
