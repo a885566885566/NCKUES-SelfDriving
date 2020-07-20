@@ -36,20 +36,21 @@ class MotionPlanner():
     """
     def generate_path(self, current_state, goal_waypoint, obstacles, num_of_points, offset):
         local_goal = Utils.trans_global_to_local(current_state, goal_waypoint[0:2])
-        #local_obs = Utils.trans_global_to_local(current_state, obstacles[0:2])
+        local_obs = Utils.trans_global_to_local(current_state, obstacles[:, 0:2])
 
         # Generate target set
-        target_set = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
+        target_set, slope = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
 
         # Interpolate the path
         path_pts = self.interpolate_path(target_set)
 
         # Filter out obstacles that are not possible to collide
-        #danger_obs = self.obstacles_filter(goal_waypoint, obstacles)
+        danger_obs = self.obstacles_filter(local_goal, local_obs, slope)
+        #print(danger_obs)
 
         # Collision check and make score1(Distance from )
 
-        return target_set, path_pts
+        return target_set, path_pts, danger_obs
 
     """
     Generate `target_set`
@@ -58,6 +59,9 @@ class MotionPlanner():
         goal_waypoint:  1d nparray
         num_of_points:  odd integer, number of target set
         offset:         number, distance between target set
+    Return:
+        target_set: 2d nparray
+        slope: number, would be used in obstacles filter 
     """
     def generate_target_set(self, current_state, goal_waypoint, num_of_points, offset):
         self.target_set = np.zeros((num_of_points, 4))
@@ -78,8 +82,12 @@ class MotionPlanner():
             target_set[mid_idx-i] = goal_state 
             target_set[mid_idx+i][0:2] += i*vec_delta 
             target_set[mid_idx-i][0:2] -= i*vec_delta 
-               
-        return target_set 
+        
+        if goal_state[2] <= 0.001:
+            slope = 99999
+        else:
+            slope = np.cos(goal_state[2])/np.sin(goal_state[2])
+        return target_set, slope
     
     """
     Interpolate path with cubic spline in local coordinate.
@@ -121,18 +129,23 @@ class MotionPlanner():
     Input:
         goal: goal_waypoint, in local coord, 1d nparray
         obs: obstacles, in local coord, 2d nparray
+        slope: target_set line slope, return from 
+            generate_target_set function
     Return:
         obstacles that have possibility to collide.
     """
-    def obstacles_filter(self, goal, obs):
-        vec = obs - goal 
+    def obstacles_filter(self, goal, obs, slope):
+        # Filter out those behind the car
+        obs = obs[obs[:,0]>0]
+
+        # Filter out those in front of car
         # The discriminant
-        if goal[1] == 0:
+        if slope >= 99999:  # Almost verticle
             D = obs[:, 0] - goal[0]
         else:
             # The line intersect to goal and perpendicular to its 
-            # vector to origin.
-            D = vec[1] + vec[0] * goal[0] / goal[1]
+            # vector to origin. D = (y-y_g) + m*(x-x_g)
+            D = obs[:,1] + slope * obs[:,0] 
             D *= (1 if goal[1]>0 else -1)
         return obs[D<0]
 
@@ -155,28 +168,17 @@ class MotionPlanner():
     """
     def collision_checker(self, path_set, obstacles):	 
         path_validity = np.zeros(len(path_set), dtype=bool)
-        for obs in obstacles:
-            dis = np.linalg.norm(obs[0:2] - path_set[:,:,0:2])
-            print(dis>obs[2])
-            
-        """
-        for i in range(len(path_set)):
-            for j in range(len(path_set[i])):
-                for k in range(len(obstacles)):
-                    distance_to_obstacle = np.sqrt( ( (path_set[i][j][0]-obstacles[k][1])**2 + 
-									                  (path_set[i][j][1]-obstacles[k][2])**2 ))
-                    if distance_to_obstacle < obstacles[k][0]:
-                        path_validity = False
-                        break
-                if distance_to_obstacle < obstacles[k][0]:
-                    path_validity = False
-                    break
-            if distance_to_obstacle < obstacles[k][0]:
-                path_validity = False
-                break                
-			   
-        return path_validity
-	    """
+        protect = 5
+        obstacles = np.squeeze(obstacles)
+        if len(obstacles.shape) < 2:
+            dis = np.linalg.norm(obstacles[0:2] - path_set[:,:,0:2], axis=2)
+            path_validity |= np.any(dis<protect, axis=1)
+        else:
+            for obs in obstacles:
+                dis = np.linalg.norm(obs[0:2] - path_set[:,:,0:2], axis=2)
+                path_validity |= np.any(dis<protect, axis=1)
+        
+        return np.logical_not(path_validity)
         
     """
     Make score to a specific path.
@@ -226,11 +228,15 @@ class MotionPlanner():
 
     """
     Choose best path according to `make_score` function.
+    Input:
+        score: 1d array
+        path_set: A list of path in the local coordinate.
     Output: path, 2d Array
     """
-    def choose_best_path(self):
-    # TODO: need to find a way to choose a path among the same score path
-        return
+    def choose_best_path(self, score, path_set):
+        best_index = np.argmax(score)
+        
+        return path_set[best_index], best_index
 
     def generate_emergency_path(self):
         return
@@ -242,37 +248,40 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import WaypointsPlanner as wp
     import Simulation as si 
-    """
+    
     way = wp.WaypointsPlanner()
     mp = MotionPlanner()
 
     sim = si.Simulation(way, 10)
     
-    current_state = np.array([0, 100, 1, 10])
+    current_state = np.array([0, 100, 1, 10], dtype=np.float64)
+
+
+    # simulate some obstacles
+    sim_obs = way.waypoints + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
     while way.available():
         plt.cla()
         sim.plot_ways()
+        sim.plot_obs(sim_obs)
         current_goal_waypoint = way.load_waypoint(current_state) 
         sim.plot_vehicle(current_state)
 
-        target_set, path_pts = mp.generate_path(current_state, current_goal_waypoint, None, 11, 2)
+        target_set, path_pts, danger = mp.generate_path(current_state, current_goal_waypoint, sim_obs, 11, 2)
 
         sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
+        path_validity = mp.collision_checker(path_pts, danger)
+        score = mp.make_score(path_pts, current_goal_waypoint, path_validity)
+        [best_path, best_idx] = mp.choose_best_path(score, path_pts)
+        danger = Utils.trans_local_to_global(current_state, danger)
+        sim.plot_obs(danger, "red")
 
-        for path in path_pts:
+        for path in path_pts[path_validity]:
             sim.plot_with_local(current_state, path, 'g-')
+            
+        sim.plot_with_local(current_state, best_path, 'y-')
+        
+        current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
+        current_state[2] += target_set[best_idx][2]
+        #current_state = current_goal_waypoint 
 
-        current_state = current_goal_waypoint 
-        plt.pause(0.01)
-    """
-    """  
-    # test code for make_score function
-    mp = MotionPlanner()
-    path_set = [ [[20,60]], [[20,55]], [[20,50]], [[20,45]], [[20,40]] ]
-    goal_state = [20,50]
-    path_validity = [True, False, True, True, True]
-    score = mp.make_score(path_set, goal_state, path_validity)
-
-    for i in range(len(score)):
-        print( "the", (i+1), "path's score is", score[i])
-    """
+        plt.pause(0.3)
