@@ -16,10 +16,10 @@ class Car():
         """
         self.car_length = 1.3
         self.car_width = 1
-        self.lt = np.array(( self.car_length, self.car_length//2))
-        self.rt = np.array(( self.car_length, -self.car_length//2))
-        self.lb = np.array(( 0,  self.car_length//2))
-        self.rb = np.array(( 0, -self.car_length//2))
+        self.lt = np.array(( self.car_length, self.car_width/2))
+        self.rt = np.array(( self.car_length, -self.car_width/2))
+        self.lb = np.array(( 0,  self.car_width/2))
+        self.rb = np.array(( 0, -self.car_width/2))
 
 class Simulation():
     def __init__(self, wayplanner, car_scale):
