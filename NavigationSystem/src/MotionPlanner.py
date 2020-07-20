@@ -139,15 +139,45 @@ class MotionPlanner():
     """
     Get the information of obstacles and check if the path's validity.
     Input:
-        path_set, obstacles
-    Ouput:
+        path_set: A list of path in the local coordinate.
+        
+        path: A 2d nparray in local coordinate, Content is a list of points.
+            format: [[x_points, y_point, t, velocity]
+                     [x_points, y_point, t, velocity]......] 
+		
+		obstacles: 2d nparray, stores the obstacle's position in local coordinate 
+		           axis, its safe radius, and the current time.
+			format: [[x, y, radius, time]
+			         [x, y, radius, time]......]
+   Ouput:
         path_validity: 1d array of boolen value to classify whether a path 
         is collision-free(True), or not(False). 
     """
-    def collision_checker(self, paths, obstacles):
-        suite = goal[goal[0]>0]     # the x axis must larger than 0
-        return
-    
+    def collision_checker(self, path_set, obstacles):	 
+        path_validity = np.zeros(len(path_set), dtype=bool)
+        for obs in obstacles:
+            dis = np.linalg.norm(obs[0:2] - path_set[:,:,0:2])
+            print(dis>obs[2])
+            
+        """
+        for i in range(len(path_set)):
+            for j in range(len(path_set[i])):
+                for k in range(len(obstacles)):
+                    distance_to_obstacle = np.sqrt( ( (path_set[i][j][0]-obstacles[k][1])**2 + 
+									                  (path_set[i][j][1]-obstacles[k][2])**2 ))
+                    if distance_to_obstacle < obstacles[k][0]:
+                        path_validity = False
+                        break
+                if distance_to_obstacle < obstacles[k][0]:
+                    path_validity = False
+                    break
+            if distance_to_obstacle < obstacles[k][0]:
+                path_validity = False
+                break                
+			   
+        return path_validity
+	    """
+        
     """
     Make score to a specific path.
     Input:
@@ -212,7 +242,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import WaypointsPlanner as wp
     import Simulation as si 
-
+    """
     way = wp.WaypointsPlanner()
     mp = MotionPlanner()
 
@@ -234,7 +264,7 @@ if __name__ == "__main__":
 
         current_state = current_goal_waypoint 
         plt.pause(0.01)
-    
+    """
     """  
     # test code for make_score function
     mp = MotionPlanner()
@@ -246,4 +276,3 @@ if __name__ == "__main__":
     for i in range(len(score)):
         print( "the", (i+1), "path's score is", score[i])
     """
-    
