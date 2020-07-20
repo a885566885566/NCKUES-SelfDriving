@@ -36,20 +36,21 @@ class MotionPlanner():
     """
     def generate_path(self, current_state, goal_waypoint, obstacles, num_of_points, offset):
         local_goal = Utils.trans_global_to_local(current_state, goal_waypoint[0:2])
-        #local_obs = Utils.trans_global_to_local(current_state, obstacles[0:2])
+        local_obs = Utils.trans_global_to_local(current_state, obstacles[:, 0:2])
 
         # Generate target set
-        target_set = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
+        target_set, slope = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
 
         # Interpolate the path
         path_pts = self.interpolate_path(target_set)
 
         # Filter out obstacles that are not possible to collide
-        #danger_obs = self.obstacles_filter(goal_waypoint, obstacles)
+        danger_obs = self.obstacles_filter(local_goal, local_obs, slope)
+        print(danger_obs)
 
         # Collision check and make score1(Distance from )
 
-        return target_set, path_pts
+        return target_set, path_pts, danger_obs
 
     """
     Generate `target_set`
@@ -58,6 +59,9 @@ class MotionPlanner():
         goal_waypoint:  1d nparray
         num_of_points:  odd integer, number of target set
         offset:         number, distance between target set
+    Return:
+        target_set: 2d nparray
+        slope: number, would be used in obstacles filter 
     """
     def generate_target_set(self, current_state, goal_waypoint, num_of_points, offset):
         self.target_set = np.zeros((num_of_points, 4))
@@ -78,8 +82,12 @@ class MotionPlanner():
             target_set[mid_idx-i] = goal_state 
             target_set[mid_idx+i][0:2] += i*vec_delta 
             target_set[mid_idx-i][0:2] -= i*vec_delta 
-               
-        return target_set 
+        
+        if goal_state[2] <= 0.001:
+            slope = 99999
+        else:
+            slope = np.cos(goal_state[2])/np.sin(goal_state[2])
+        return target_set, slope
     
     """
     Interpolate path with cubic spline in local coordinate.
@@ -121,18 +129,23 @@ class MotionPlanner():
     Input:
         goal: goal_waypoint, in local coord, 1d nparray
         obs: obstacles, in local coord, 2d nparray
+        slope: target_set line slope, return from 
+            generate_target_set function
     Return:
         obstacles that have possibility to collide.
     """
-    def obstacles_filter(self, goal, obs):
-        vec = obs - goal 
+    def obstacles_filter(self, goal, obs, slope):
+        # Filter out those behind the car
+        obs = obs[obs[:,0]>0]
+
+        # Filter out those in front of car
         # The discriminant
-        if goal[1] == 0:
+        if slope >= 99999:  # Almost verticle
             D = obs[:, 0] - goal[0]
         else:
             # The line intersect to goal and perpendicular to its 
-            # vector to origin.
-            D = vec[1] + vec[0] * goal[0] / goal[1]
+            # vector to origin. D = (y-y_g) + m*(x-x_g)
+            D = obs[:,1] + slope * obs[:,0] 
             D *= (1 if goal[1]>0 else -1)
         return obs[D<0]
 
@@ -219,21 +232,28 @@ if __name__ == "__main__":
     sim = si.Simulation(way, 10)
     
     current_state = np.array([0, 100, 1, 10])
+
+
+    # simulate some obstacles
+    sim_obs = way.waypoints + 100*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
     while way.available():
         plt.cla()
         sim.plot_ways()
+        sim.plot_obs(sim_obs)
         current_goal_waypoint = way.load_waypoint(current_state) 
         sim.plot_vehicle(current_state)
 
-        target_set, path_pts = mp.generate_path(current_state, current_goal_waypoint, None, 11, 2)
+        target_set, path_pts, danger = mp.generate_path(current_state, current_goal_waypoint, sim_obs, 11, 2)
 
         sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
+        danger = Utils.trans_local_to_global(current_state, danger)
+        sim.plot_obs(danger, "red")
 
         for path in path_pts:
             sim.plot_with_local(current_state, path, 'g-')
 
         current_state = current_goal_waypoint 
-        plt.pause(0.01)
+        plt.pause(0.3)
     
     """  
     # test code for make_score function

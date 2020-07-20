@@ -34,6 +34,13 @@ class Simulation():
         plt.scatter(self.waypoints[:, 0], self.waypoints[:, 1], marker=".")
         return
 
+    def plot_obs(self, obs, color="gray"):
+        obs = np.squeeze(obs)
+        if len(obs.shape) >= 2:
+            plt.scatter(obs[:,0], obs[:,1], marker=".", color=color)
+        else:
+            plt.scatter(obs[0], obs[1], marker=".", color=color)
+        return
     """
     Plot line segment with point given in local coordinate.
     """
