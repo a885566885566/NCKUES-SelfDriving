@@ -34,9 +34,21 @@ class MotionPlanner():
         target_set
         path: 2d Array in local coordinate.
     """
-    def generate_path(self, current_state, goal_waypoint, num_of_points, offset):
+    def generate_path(self, current_state, goal_waypoint, obstacles, num_of_points, offset):
+        local_goal = Utils.trans_global_to_local(current_state, goal_waypoint[0:2])
+        #local_obs = Utils.trans_global_to_local(current_state, obstacles[0:2])
+
+        # Generate target set
         target_set = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
+
+        # Interpolate the path
         path_pts = self.interpolate_path(target_set)
+
+        # Filter out obstacles that are not possible to collide
+        #danger_obs = self.obstacles_filter(goal_waypoint, obstacles)
+
+        # Collision check and make score1(Distance from )
+
         return target_set, path_pts
 
     """
@@ -56,7 +68,7 @@ class MotionPlanner():
         goal_state[3] = goal_waypoint[3]
 
         mid_idx = num_of_points // 2
-        vec_delta = offset * np.array((goal_state[1], goal_state[0])) / np.linalg.norm(goal_state[0:2])
+        vec_delta = offset * np.array((-np.sin(goal_state[2]), np.cos(goal_state[2])))
 
         target_set = np.zeros((num_of_points, 4))
         target_set[mid_idx] = goal_state 
@@ -75,6 +87,9 @@ class MotionPlanner():
     (0, 0):   f(0) =0,  f'(0) =0
     (x1, y1): f(x1)=y1, f'(x1)=dy/dx=tan(theta)
     S(x) = a*x^3 + b*x^2
+        3*y1   tan(t)        tan(t) - 2*b*x1 
+    a = ---- - ------   b =  --------------- 
+        x1^2     x1               3*x1^2
 
     Input:
         target_set: 2d nparray
@@ -100,7 +115,28 @@ class MotionPlanner():
         return np.stack((x.T,y.T), axis=-1)
 
     """
-    Get the obstacle information and check if the path's validity.
+    This function filter out some obstacles that is not posible
+    to collide the path zone.
+    Input:
+        goal: goal_waypoint, in local coord, 1d nparray
+        obs: obstacles, in local coord, 2d nparray
+    Return:
+        obstacles that have possibility to collide.
+    """
+    def obstacles_filter(self, goal, obs):
+        vec = obs - goal 
+        # The discriminant
+        if goal[1] == 0:
+            D = obs[:, 0] - goal[0]
+        else:
+            # The line intersect to goal and perpendicular to its 
+            # vector to origin.
+            D = vec[1] + vec[0] * goal[0] / goal[1]
+            D *= (1 if goal[1]>0 else -1)
+        return obs[D<0]
+
+    """
+    Get the information of obstacles and check if the path's validity.
     Input:
         path_set, obstacles
     Ouput:
@@ -108,6 +144,7 @@ class MotionPlanner():
         is collision-free(True), or not(False). 
     """
     def collision_checker(self, paths, obstacles):
+        suite = goal[goal[0]>0]     # the x axis must larger than 0
         return
     
     """
@@ -185,7 +222,7 @@ if __name__ == "__main__":
         current_goal_waypoint = way.load_waypoint(current_state) 
         sim.plot_vehicle(current_state)
 
-        target_set, path_pts = mp.generate_path(current_state, current_goal_waypoint, 11, 2)
+        target_set, path_pts = mp.generate_path(current_state, current_goal_waypoint, None, 11, 2)
 
         sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
         for path in path_pts:
