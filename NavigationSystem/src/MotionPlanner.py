@@ -261,17 +261,18 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import WaypointsPlanner as wp
     import Simulation as si 
-    
-    way = wp.WaypointsPlanner()
+    import VelocityProfile 
+
+    vel_config = VelocityProfile.VelocityConfig(10, 0.1, 0.1, -0.5)
+    way = wp.WaypointsPlanner(vel_config)
     mp = MotionPlanner()
 
     sim = si.Simulation(way, 10)
     
     current_state = np.array([0, 100, 1, 10], dtype=np.float64)
 
-
     # simulate some obstacles
-    sim_obs = way.waypoints + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
+    sim_obs = way.waypoints[:,0:2] + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
     while way.available():
         plt.cla()
         sim.plot_ways()
