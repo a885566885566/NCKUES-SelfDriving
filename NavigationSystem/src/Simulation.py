@@ -31,7 +31,10 @@ class Simulation():
     Plot waypoints given by waypoints planner.
     """
     def plot_ways(self):
-        plt.scatter(self.waypoints[:, 0], self.waypoints[:, 1], marker=".")
+        color = 0.1*np.ones((self.waypoints.shape[0],3))
+        color[:,2] = np.clip(self.waypoints[:,2]/10, 0, 1)
+        color[:,1] = 1-np.clip(self.waypoints[:,2]/10, 0, 1)
+        plt.scatter(self.waypoints[:, 0], self.waypoints[:, 1], marker=".", c=color)
         return
 
     def plot_obs(self, obs, color="gray"):
