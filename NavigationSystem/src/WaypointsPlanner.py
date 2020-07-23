@@ -10,7 +10,7 @@ waypoints from JSON file.
 # Get next current goal waypoint, call load_waypoint()
 """
 class WaypointsPlanner():
-    def __init__(self):
+    def __init__(self, vel_config):
         self.ASTAR_EXCUTABLE_FILE = ''
         self.ASTAR_JSON_FOLDER = './astar_output'
         self.ASTAR_JSON_FILE_PATH = {
@@ -18,10 +18,10 @@ class WaypointsPlanner():
                 'y_file':'longj_arrayy.json'}
         self.waypoints = None 
         self.current_idx = 0
-        self.__perform_astar()
+        self.__perform_astar(vel_config)
         return
 
-    def __perform_astar(self):
+    def __perform_astar(self, vel_config):
         # Run Astar algorithm
         #os.system()
 
@@ -30,7 +30,11 @@ class WaypointsPlanner():
         astar_x = np.asarray( json.load(astar_x_file) )
         astar_y_file = open(os.path.join(self.ASTAR_JSON_FOLDER, self.ASTAR_JSON_FILE_PATH['y_file']))
         astar_y = np.asarray( json.load(astar_y_file) )
-        self.waypoints = np.vstack( (astar_x, astar_y) ).T
+        self.waypoints = np.zeros((astar_x.shape[0], 3))
+        self.waypoints[:, 0:2] = np.vstack( (astar_x, astar_y) ).T
+
+        # Calculate velocity profile
+        self.waypoints[:,2] = vel_config.get_velocity_profile(self.waypoints)[0]
         return
 
     """
@@ -43,6 +47,7 @@ class WaypointsPlanner():
 
     """
     This function return `current_goal_waypoint`.
+    # TODO: Issue 
     Input:
         current_state: 1d nparray, [px, py, yaw, vel]
     Output:
@@ -74,7 +79,7 @@ class WaypointsPlanner():
         return np.array((self.waypoints[self.current_idx][0], 
                          self.waypoints[self.current_idx][1], 
                          yaw, 
-                         10))   # TODO: velocity planner
+                         self.waypoints[self.current_idx][2]))
 
     """
     Calculate the closet index start from the given index
@@ -87,7 +92,7 @@ class WaypointsPlanner():
     """
     def __get_closet_idx(self, current_state, start_idx):
         # calculate the distance between each waypoint and current pos
-        dists = np.linalg.norm(self.waypoints[start_idx:] - current_state[0:2], axis=1)
+        dists = np.linalg.norm(self.waypoints[start_idx:, 0:2] - current_state[0:2], axis=1)
         idx = np.argmin(dists)
         return idx, dists 
 
@@ -101,11 +106,14 @@ class WaypointsPlanner():
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import Simulation as si 
+    import VelocityProfile 
 
-    way = WaypointsPlanner()
-    sim = si.Simulation(way)
+    vel_config = VelocityProfile.VelocityConfig(10, 0.1, 0.1, -0.5)
+    way = WaypointsPlanner(vel_config)
+    sim = si.Simulation(way, 10)
 
-    current_goal_waypoint = np.array([0, 100, 1, 10])
+    plt.figure()
+    current_goal_waypoint = way.waypoints[0]
     while way.available():
         plt.cla()
         sim.plot_ways()
@@ -118,4 +126,6 @@ if __name__ == "__main__":
         # Plot current goal waypoint
         plt.scatter(current_goal_waypoint[0], current_goal_waypoint[1], marker="o", color='red', alpha=0.5)
 
-        plt.pause(0.01)
+        plt.pause(0.1)
+
+    
