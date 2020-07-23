@@ -1,7 +1,7 @@
 import numpy as np
 import Utils
 import WaypointsPlanner as wp 
-import Perception
+#import Perception
 """
 This class create some potential path, called TargetSet to imitate 
 future motion, and determine the best path with some scoring function.
@@ -20,11 +20,12 @@ class MotionPlanner():
     Create potential path.
     Input: 
         current_state: 1d nparray, which contains the current information 
-            of the vehicle in global coordinate, 
+                       of the vehicle in global coordinate, 
             format:[x_point, y_point, yaw, velocity]
 
-        goal_waypoint: 1d nparray, in global coordinate
-            A state for the vehicle to reach in global coordinate.
+        goal_waypoint: 1d nparray, a state which choose from waypoints for the 
+                       vehicle to reach in global coordinate.
+            format:[x_point, y_point, yaw, velocity]
 
         num_of_points: odd number, number of point in target_set
 
@@ -46,7 +47,7 @@ class MotionPlanner():
 
         # Filter out obstacles that are not possible to collide
         danger_obs = self.obstacles_filter(local_goal, local_obs, slope)
-        print(danger_obs)
+        #print(danger_obs)
 
         # Collision check and make score1(Distance from )
 
@@ -59,7 +60,7 @@ class MotionPlanner():
         goal_waypoint:  1d nparray
         num_of_points:  odd integer, number of target set
         offset:         number, distance between target set
-    Return:
+    Output:
         target_set: 2d nparray
         slope: number, would be used in obstacles filter 
     """
@@ -103,8 +104,8 @@ class MotionPlanner():
     Input:
         target_set: 2d nparray
         num_of_interpolate: integer, number of point in each spline
-    Return:
-        path_points: each point of the path, shape in 
+    Output:
+        path_pts: each point of the path, shape in 
             [numb_of_points, num_of_interpolate, 2]
         a:  2d nparray, [number_of_points]
         b:  2d nparray, [number_of_points]
@@ -127,11 +128,11 @@ class MotionPlanner():
     This function filter out some obstacles that is not posible
     to collide the path zone.
     Input:
-        goal: goal_waypoint, in local coord, 1d nparray
+        goal(goal_state): goal_waypoint, in local coord, 1d nparray
         obs: obstacles, in local coord, 2d nparray
         slope: target_set line slope, return from 
             generate_target_set function
-    Return:
+    Output:
         obstacles that have possibility to collide.
     """
     def obstacles_filter(self, goal, obs, slope):
@@ -152,19 +153,40 @@ class MotionPlanner():
     """
     Get the information of obstacles and check if the path's validity.
     Input:
-        path_set, obstacles
-    Ouput:
+        path_pts: A list of path in the local coordinate.
+            format: [path, path, path, path, path, ......]
+        
+        path: A 2d nparray in local coordinate, Content is a list of points.
+            format: [[x_points, y_point, t, velocity]
+                     [x_points, y_point, t, velocity]......] 
+		
+		obstacles: 2d nparray, stores the obstacle's position in local coordinate 
+		           axis, its safe radius, and the current time.
+			format: [[x, y, radius, time]
+			         [x, y, radius, time]......]
+   Ouput:
         path_validity: 1d array of boolen value to classify whether a path 
-        is collision-free(True), or not(False). 
+                       is collision-free(True), or not(False). 
     """
-    def collision_checker(self, paths, obstacles):
-        suite = goal[goal[0]>0]     # the x axis must larger than 0
-        return
-    
+    def collision_checker(self, path_pts, obstacles):
+        #TODO: 1.change the protect variable to the obstacle's radius value.
+        path_validity = np.zeros(len(path_pts), dtype=bool)
+        protect = 5
+        obstacles = np.squeeze(obstacles)
+        if len(obstacles.shape) < 2:
+            dis = np.linalg.norm(obstacles[0:2] - path_pts[:,:,0:2], axis=2)
+            path_validity |= np.any(dis<protect, axis=1)
+        else:
+            for obs in obstacles:
+                dis = np.linalg.norm(obs[0:2] - path_pts[:,:,0:2], axis=2)
+                path_validity |= np.any(dis<protect, axis=1)
+        
+        return np.logical_not(path_validity)
+        
     """
     Make score to a specific path.
     Input:
-        path_set: A list of path in the local coordinate.
+        path_pts: A list of path in the local coordinate.
         
         path: A 2d nparray in local coordinate, Content is a list of points.
             format: [[x_points, y_point, t, velocity]
@@ -173,18 +195,23 @@ class MotionPlanner():
         goal_state: current goal waypoint for the vehicle to reach in local coordinate.
             format: [x_goal, y_goal, t, v_goal]
         
-        path_validity: 1d array of boolen value to classify whether a path is collision-free(True), or not(False). 
+        path_validity: 1d array of boolen value to classify whether a path is 
+                       collision-free(True), or not(False). 
     Output:
         score: A 1d array to indicate the score of the specific path,
                higher score implies the suitable path, 
-               -1 represents the colliding path's score.
+               '-Inf' represents the colliding path's score.
     """
-    def make_score(self, path_set, goal_state, path_validity):
-        
+    def make_score(self, path_pts, goal_state, path_validity):
         score = []
-        highest_centerline_distance = np.sqrt( (path_set[0][-1][0] - goal_state[0])**2 + (path_set[0][-1][1] - goal_state[1])**2 )
-        
-        for i in range(len(path_set)):
+        highest_centerline_distance = np.sqrt( (path_pts[0][-1][0] - goal_state[0])**2 + (path_pts[0][-1][1] - goal_state[1])**2 )
+        """
+        print("\npath_validity: ", path_validity)
+        print("\ngoal_state: ", goal_state)
+        for i in range(len(path_pts)):
+            print("\npath ", i, " :", path_pts[i][-1])
+        """
+        for i in range(len(path_pts)):
             # Handle the case of collision-free path.
             
             if path_validity[i]:
@@ -193,27 +220,36 @@ class MotionPlanner():
                 # however, we think a higher score means better intuitively.
                 # so I let score = ( 1/(distance to centerline goal point + 10) )*highest_centerline_distance, +10 to prevent divsion by zero
                 # let a higher score implies the suitable path.
-                score.append( 1/(np.sqrt( (path_set[i][-1][0] - goal_state[0])**2 + (path_set[i][-1][1] - goal_state[1])**2) + 10 ) * highest_centerline_distance )
+                distance_to_centerline = np.sqrt( (path_pts[i][-1][0] - goal_state[0])**2 + (path_pts[i][-1][1] - goal_state[1])**2)
+                score.append( ( 1/( distance_to_centerline + 10 ) ) * highest_centerline_distance )
+                #print("path ", i, " to centerline is: ", distance_to_centerline)
 
-                for j in range(len(path_set)):
+                for j in range(len(path_pts)):
                     # Compute the collision-free path goal point's distance to colliding path's goal point
-                    # then add it to the score, farther distance to the colliding path implies the suitable path. 
+                    # then add it to the score, farther distance to the colliding path implies the suitable path.
+                    
                     if j == i:
                         continue
                     if not path_validity[j]:
-                        score[i] += np.sqrt( (path_set[i][-1][0] - path_set[j][-1][0])**2 + (path_set[i][-1][1] - path_set[j][-1][1])**2 )
-
+                        distance_to_colliding_path = np.sqrt( (path_pts[i][-1][0] - path_pts[j][-1][0])**2 + (path_pts[i][-1][1] - path_pts[j][-1][1])**2 )
+                        score[i] += distance_to_colliding_path
+                        #print("path ", i, " to path ", j, " is: ", distance_to_colliding_path)
             else:
-                score.append(-1) 
+                score.append(float('-Inf'))
+        #print("\nscore", score)
         return score
 
     """
     Choose best path according to `make_score` function.
+    Input:
+        score: 1d array
+        path_pts: A list of path in the local coordinate.
     Output: path, 2d Array
     """
-    def choose_best_path(self):
-    # TODO: need to find a way to choose a path among the same score path
-        return
+    def choose_best_path(self, score, path_pts):
+        best_index = np.argmax(score)
+        #print("\nbest_index: ", best_index)
+        return path_pts[best_index], best_index
 
     def generate_emergency_path(self):
         return
@@ -225,17 +261,17 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import WaypointsPlanner as wp
     import Simulation as si 
-
+    
     way = wp.WaypointsPlanner()
     mp = MotionPlanner()
 
     sim = si.Simulation(way, 10)
     
-    current_state = np.array([0, 100, 1, 10])
+    current_state = np.array([0, 100, 1, 10], dtype=np.float64)
 
 
     # simulate some obstacles
-    sim_obs = way.waypoints + 100*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
+    sim_obs = way.waypoints + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
     while way.available():
         plt.cla()
         sim.plot_ways()
@@ -246,24 +282,23 @@ if __name__ == "__main__":
         target_set, path_pts, danger = mp.generate_path(current_state, current_goal_waypoint, sim_obs, 11, 2)
 
         sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
+        
+        goal_state = Utils.trans_global_to_local(current_state, current_goal_waypoint[0:2])
+        path_validity = mp.collision_checker(path_pts, danger)
+        score = mp.make_score(path_pts, goal_state, path_validity)
+        [best_path, best_idx] = mp.choose_best_path(score, path_pts)
         danger = Utils.trans_local_to_global(current_state, danger)
+        
         sim.plot_obs(danger, "red")
 
-        for path in path_pts:
+        for path in path_pts[path_validity]:
             sim.plot_with_local(current_state, path, 'g-')
+            
+        sim.plot_with_local(current_state, best_path, 'y-')
+        
+        #TODO: implement the smith predictor in the below the code.
+        current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
+        current_state[2] += target_set[best_idx][2]
+        #current_state = current_goal_waypoint 
 
-        current_state = current_goal_waypoint 
-        plt.pause(0.3)
-    
-    """  
-    # test code for make_score function
-    mp = MotionPlanner()
-    path_set = [ [[20,60]], [[20,55]], [[20,50]], [[20,45]], [[20,40]] ]
-    goal_state = [20,50]
-    path_validity = [True, False, True, True, True]
-    score = mp.make_score(path_set, goal_state, path_validity)
-
-    for i in range(len(score)):
-        print( "the", (i+1), "path's score is", score[i])
-    """
-    
+        plt.pause(1)
