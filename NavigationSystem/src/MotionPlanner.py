@@ -29,27 +29,38 @@ class MotionPlanner():
 
         num_of_points: odd number, number of point in target_set
 
-        offset: number, distance between `target_set` points 
+        offset: number, distance between `target_set` points
+        
+        obstacles: 2d nparray, obstacles' x and y value in local coordinate.
+            format: [[x, y]
+                     [x, y]...]
 
     Output:
-        target_set
-        path: 2d Array in local coordinate.
+        target_set: 2d Array in local coordinate.
+            format: [[x, y, radian, velocity]
+                     [x, y, radian, velocity]......]
+            
+        path_pts: 3d Array in local coordinate.
     """
     def generate_path(self, current_state, goal_waypoint, obstacles, num_of_points, offset):
         local_goal = Utils.trans_global_to_local(current_state, goal_waypoint[0:2])
+        
+        # TODO: decide delete this one or not, because the obstacles nparray from zed2 is actual in local coordinate. 
         local_obs = Utils.trans_global_to_local(current_state, obstacles[:, 0:2])
 
         # Generate target set
         target_set, slope = self.generate_target_set(current_state, goal_waypoint, num_of_points, offset)
 
+        # TODO: the path_pts only have x and y value now, should give radian and velocity in each point.
         # Interpolate the path
         path_pts = self.interpolate_path(target_set)
 
+        # TODO: change the imput parameter "local_obs" to "obstacles[:, 0:2]".
         # Filter out obstacles that are not possible to collide
         danger_obs = self.obstacles_filter(local_goal, local_obs, slope)
         #print(danger_obs)
 
-        # Collision check and make score1(Distance from )
+        # Collision check and make score1( Distance from )
 
         return target_set, path_pts, danger_obs
 
@@ -273,16 +284,20 @@ if __name__ == "__main__":
 
     # simulate some obstacles
     sim_obs = way.waypoints[:,0:2] + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
+    
+    plt.figure(num="Global Coordinate Map")
+    
     while way.available():
+        # clear the window
         plt.cla()
-        sim.plot_ways()
-        sim.plot_obs(sim_obs)
+        #sim.plot_ways()
+        #sim.plot_obs(sim_obs)
         current_goal_waypoint = way.load_waypoint(current_state) 
-        sim.plot_vehicle(current_state)
+        #sim.plot_vehicle(current_state)
 
         target_set, path_pts, danger = mp.generate_path(current_state, current_goal_waypoint, sim_obs, 11, 2)
 
-        sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
+        #sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
         
         goal_state = Utils.trans_global_to_local(current_state, current_goal_waypoint[0:2])
         path_validity = mp.collision_checker(path_pts, danger)
@@ -290,16 +305,21 @@ if __name__ == "__main__":
         [best_path, best_idx] = mp.choose_best_path(score, path_pts)
         danger = Utils.trans_local_to_global(current_state, danger)
         
-        sim.plot_obs(danger, "red")
+        #sim.plot_obs(danger, "red")
 
-        for path in path_pts[path_validity]:
-            sim.plot_with_local(current_state, path, 'g-')
+        #for path in path_pts[path_validity]:
+        #    sim.plot_with_local(current_state, path, 'g-')
             
-        sim.plot_with_local(current_state, best_path, 'y-')
+        #sim.plot_with_local(current_state, best_path, 'y-')
         
         #TODO: implement the smith predictor in the below the code.
         current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
         current_state[2] += target_set[best_idx][2]
         #current_state = current_goal_waypoint 
-
+        
+        # compare the path and the algorithm of car trying to move along the path
+        for path in path_pts[path_validity]:
+            plt.plot(path[:,0], path[:,1], 'r-')
+            sim.plot_estimated_lane()
+        
         plt.pause(1)
