@@ -1,0 +1,6 @@
+DRC Rules Export File for PCB: G:\Cheng Kung University\Course\108(2)\SelfDriving\GateDriver\BLDC_driver\BLDC_driver.PcbDoc
+RuleKind=Clearance|RuleName=Polygon|Scope=Board|Minimum=31.50
+RuleKind=ShortCircuit|RuleName=ShortCircuit|Scope=Board|Allowed=0
+RuleKind=Clearance|RuleName=Clearance|Scope=Board|Minimum=10.00
+RuleKind=Width|RuleName=Width|Scope=Board|Minimum=19.69
+RuleKind=SolderMaskExpansion|RuleName=SolderMaskExpansion|Scope=Board|Minimum=4.00
