@@ -11,11 +11,14 @@ class Car():
           |             |   car moving direction
     (0,0) |-------------|------->x
         rb|_____________|rt(right top)
-           
+          |--lr--|--lf--| 
+        
         unit: m
         """
         self.car_length = 1.3
         self.car_width = 1
+        self.lr = self.car_length/2
+        self.lf = self.car_length/2
         self.lt = np.array(( self.car_length, self.car_width/2))
         self.rt = np.array(( self.car_length, -self.car_width/2))
         self.lb = np.array(( 0,  self.car_width/2))
@@ -75,5 +78,24 @@ class Simulation():
         plt.arrow(current_state[0],
                   current_state[1],
                   vec[0], vec[1], width=1)
+        return
+    
+    """
+    Plot the car's marching line and the best_path.
+    compare the path and the algorithm of car trying to catch the path
+    Input:
+        path: A 2d nparray in local coordinate, Content is a list of points.
+            format: [[x_points, y_point, t, velocity]
+                     [x_points, y_point, t, velocity]......]
+            
+       car_info: 2d nparray, contains the velocity of the car, front steer angle,
+                 current time.
+            format: [[velocity, steer angle, time]
+                     [velocity, steer angle, time]......]
+    """
+    def plot_best_path_and_estimated_lane(path, car_info):
+        local_yaw = 0
+        for i in range(len(car_info)-1):
+            
         return
 
