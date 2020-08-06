@@ -106,7 +106,9 @@ class MotionPlanner():
         num_of_interpolate: integer, number of point in each spline
     Output:
         path_pts: each point of the path, shape in 
-            [numb_of_points, num_of_interpolate, 2]
+            [numb_of_points, num_of_interpolate, 4]
+        each point containing x position, y position, yaw, velocity
+        in local coordinate.
         a:  2d nparray, [number_of_points]
         b:  2d nparray, [number_of_points]
     """
@@ -122,7 +124,10 @@ class MotionPlanner():
         a = (tan_t-2*b*x1)/(3*x1_2)
         x = np.linspace(0, target_set[:,0], num_of_interpolate)
         y = a*np.power(x, 3) + b*np.square(x)
-        return np.stack((x.T,y.T), axis=-1)
+
+        yaw = np.arctan(3*a*np.square(x) + 2*b*x)
+        vel = 10 * np.ones((11,num_of_interpolate))
+        return np.stack((x.T,y.T, yaw.T, vel), axis=-1)
 
     """
     This function filter out some obstacles that is not posible
@@ -270,6 +275,9 @@ if __name__ == "__main__":
     sim = si.Simulation(way, 10)
     
     current_state = np.array([0, 100, 1, 10], dtype=np.float64)
+    # Use first way point as first state
+    current_state = way.load_waypoint(current_state)
+    print(current_state)
 
     # simulate some obstacles
     sim_obs = way.waypoints[:,0:2] + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
@@ -293,13 +301,17 @@ if __name__ == "__main__":
         sim.plot_obs(danger, "red")
 
         for path in path_pts[path_validity]:
-            sim.plot_with_local(current_state, path, 'g-')
+            sim.plot_with_local(current_state, path[:,0:2], 'g-')
             
-        sim.plot_with_local(current_state, best_path, 'y-')
+        sim.plot_with_local(current_state, best_path[:,0:2], 'y-')
         
         #TODO: implement the smith predictor in the below the code.
-        current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
-        current_state[2] += target_set[best_idx][2]
+        #current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
+        #current_state[2] = target_set[best_idx][2])
+
+        # Load point at index 2 in best path as next state
+        current_state[0:2] = Utils.trans_local_to_global(current_state, best_path[2][0:2])
+        current_state[2] += best_path[2][2]
         #current_state = current_goal_waypoint 
 
-        plt.pause(1)
+        plt.pause(0.1)

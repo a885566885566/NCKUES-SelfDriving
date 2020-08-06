@@ -101,7 +101,7 @@ class WaypointsPlanner():
     velocity.
     """
     def __look_ahead_function(self, current_state):
-        return (current_state[2]+2) * 10
+        return (current_state[2]+8) * 5
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
