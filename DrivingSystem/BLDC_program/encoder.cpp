@@ -39,10 +39,10 @@ void encoder_sampling(volatile ENCODER* enc){
 double encoder_speed_mt(volatile ENCODER* enc){
     static double filter = 0.5;
     // speed = [rotation / s]
-    if ( enc->step_counter > CONF_ENCODER_TS_COUNT )
+    if ( enc->step_counter > CONF_ENCODER_TS_COUNT ){
         enc->speed = CONF_ENCODER_RESOLUTION * enc->position / (CONF_ENCODER_TP * enc->step_counter);
     //if ( fabs(enc->speed)<10*filter )
         filter = filter * 0.9 + enc->speed * 0.1;
-    //return enc->speed;
+    }
     return filter;
 }

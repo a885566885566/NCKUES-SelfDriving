@@ -44,13 +44,22 @@
 #define CONF_ENCODER_TS 100      // 50 ms, approximate speed with 10Hz
 #define CONF_ENCODER_TS_COUNT 200// 100 ms / 500 us, approximate speed with 10Hz
 
-#define CONF_CONTROL_CURRENT_DT  1     // current feedback loop 1 ms
-#define CONF_CONTROL_CURRENT_COUNT  2  // 2 * 500 us = 1 ms
-#define CONF_CONTROL_VELOCITY_DT  10   // velocity feedback loop 10 ms
-#define CONF_CONTROL_VELOCITY_COUNT 20 // 20 * 500 us = 10 ms
+#define CONF_CONTROL_CURRENT_DT  0.5   // current feedback loop 1 ms
+#define CONF_CONTROL_CURRENT_COUNT  1  // 2 * 500 us = 1 ms
+#define CONF_CONTROL_VELOCITY_DT  0.5  // velocity feedback loop 1 ms
+#define CONF_CONTROL_VELOCITY_COUNT 1  // 2 * 500 us = 1 ms
 
-#define CONF_MODE_MOTOR 'M'     // motor, drive motor to specific speed 
+#define CONF_MODE_VELOCITY 'V'  // velocity, drive motor to specific speed 
+#define CONF_MODE_CURRENT 'C'   // current, drive motor to specific current 
 #define CONF_MODE_STOP  'S'     // stop, stop and release motor
-#define CONF_MODE_READ  'R'     // read, obtain informations from driver
 
+/* ---- CAN BUS SPI ---- */
+#define CONF_CENTRAL_CONTROLLER_ID 1
+#define CONF_MOTOR_DRIVER_ID 2
+#define CONF_NAVIGATOR_ID 3
+#define CONF_PIN_CS 10
+
+/* Routine configurateion */
+#define CONF_REPORT_INTERVAL 5 // ms
+#define CONF_DEBUG_REPORT_INTERVAL 100  // ms
 #endif

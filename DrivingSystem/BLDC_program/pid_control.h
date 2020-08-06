@@ -11,7 +11,7 @@ typedef struct{
   double decayRatio;
   
   /* Computing Parameter */
-  uint16_t dt;
+  double dt;
   int16_t upperBound;
   int16_t lowerBound;
   

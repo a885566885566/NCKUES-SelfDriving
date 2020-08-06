@@ -1,24 +1,48 @@
-#include "command.h"
+#include "communicate.h"
 #include "utils.h"
 #include "control.h"
+#include "routine.h"
 
-COMMAND cmd;
-extern CONTROL motor;
+COMMU commu;
+ROUTINE routine;
 extern BEEPER_CONFIG buzzer;
+extern MOTOR_STATE motor_state;
+extern CONTROL motor;
 void setup(){
+    // This two init function set pins to safe state, 
+    // so they should be perform at fast as possible.
     pin_init();
     system_init();
     
-    command_init(&cmd);
+    // Init for can bus module
+    commu_init(&commu);
+    // Init for motor control parameters
     control_init(&motor);
+    // Init for routine(Including report infomation)
+    routine_init(&routine);
+
+    // Enable control update ISR 
     ISR_enable();
+
+    // Buzzer setting
     utils_beep_init(&buzzer, PIN_BUZZER);
     utils_beep_set(&buzzer, 1, 35, 2);
 }
 
 void loop(){
-    //utils_beep_update(&buzzer);
-    
+    // Handle command from communication device
+    command_process(&routine, &commu);
+
+    // Send velocity infomation back to Center Controller
+    motor_info_report(&routine, &commu, &motor_state);
+
+    utils_beep_update(&buzzer);
+
+    // Send debug message 
+    debug_msg();
+}
+
+void motor_test(){
     motor_key(true, CONF_MOTOR_CW);
     /*
     for(float i=0; i<0.6; i+=0.01){
@@ -31,39 +55,15 @@ void loop(){
         delay(20);
     }*/
 
-    for(float i=0; i<30; i+=0.1){
+    for(float i=0; i<25; i+=0.1){
         PIDsetTarget( &(motor.pid_velocity), i );
         delay(2);
     }
-    delay(3000);
-    for(float i=30; i>0; i-=0.1){
+    delay(5000);
+    for(float i=25; i>0; i-=0.1){
         PIDsetTarget( &(motor.pid_velocity), i );
         delay(2);
     }
     motor_key(false, CONF_MOTOR_CW);
     delay(1000);
-    /*
-    if (command_available(&cmd)){
-        command_read(&cmd);
-        Serial.print("Mode=");
-        Serial.print(cmd.mode);
-        Serial.print(", Data=");
-        Serial.println(cmd.data);
-        //command_debug(&cmd);
-        switch (cmd.mode){
-        case CONF_MODE_MOTOR:
-            control_set_speed(cmd.data);
-            break;
-        
-        case CONF_MODE_STOP:
-            control_set_speed(0);
-            break;
-            
-        case CONF_MODE_READ:
-            break;
-        default:
-            break;
-        }
-    }*/
-    //delay(100);
 }

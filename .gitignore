@@ -1,5 +1,104 @@
+# CubeMx file
+.mxproject
+
+# Stm32 divers lib
+Controller/src/f407/Drivers
+
+# Keil 
+Controller/src/f407/StudioBebugger
+
+
+# Vim cache
 *.swp
 *.swn
 *.swo
+
+# Python cache
 __pycache__
 .ipynb_checkpoints
+
+# Altium file
+DrivingSystem/PCB_Design/BLDC_driver/History/*
+DrivingSystem/PCB_Design/BLDC_driver/__Previews/*
+DrivingSystem/PCB_Design/BLDC_driver/Project Logs for BLDC_driver/*
+DrivingSystem/PCB_Design/BLDC_driver/Project Outputs for BLDC_driver/*
+
+#===========================================
+# A .gitignore for Keil projects.
+# Taken mostly from http://www.keil.com/support/man/docs/uv4/uv4_b_filetypes.htm
+# User-specific uVision files
+*.opt
+*.uvopt
+*.uvoptx
+*.uvgui
+*.uvgui.*
+*.uvguix.*
+
+# Listing files
+*.cod
+*.htm
+*.i
+*.lst
+*.map
+*.m51
+*.m66
+# define exception below if needed
+*.scr
+
+# Object and HEX files
+*.axf
+*.b[0-3][0-9]
+*.hex
+*.d
+*.crf
+*.elf
+*.hex
+*.h86
+*.lib
+*.obj
+*.o
+*.sbr
+
+# Build files
+# define exception below if needed
+*.bat
+*._ia
+*.__i
+*._ii
+
+# Generated output files
+/Listings/*
+/Objects/*
+
+# Debugger files
+# define exception below if needed
+*.ini
+
+# Other files
+*.build_log.htm
+*.cdb
+*.dep
+*.ic
+*.lin
+*.lnp
+*.orc
+# define exception below if needed
+*.pack
+# define exception below if needed
+*.pdsc
+*.plg
+# define exception below if needed
+*.sct
+*.sfd
+*.sfr
+
+# Miscellaneous
+*.tra
+*.bin
+*.fed
+*.l1p
+*.l2p
+*.iex
+
+# To explicitly override the above, define any exceptions here; e.g.:
+# !my_customized_scatter_file.sct
