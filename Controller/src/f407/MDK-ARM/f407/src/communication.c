@@ -1,8 +1,9 @@
 #include "communication.h"
 #include "stm32f4xx_hal.h"
+#include "configs.h"
 
 
-void communication_init(COMMU_CONFIG *commu_t, CAN_HandleTypeDef* hcan_t){
+HAL_StatusTypeDef communication_init(volatile COMMU_CONFIG* commu_t, CAN_HandleTypeDef* hcan_t){
   commu_t->hcan = hcan_t;
   // Setting up for can receiver filter 
   CAN_FilterTypeDef sFilterConfig;
@@ -15,18 +16,22 @@ void communication_init(COMMU_CONFIG *commu_t, CAN_HandleTypeDef* hcan_t){
   sFilterConfig.FilterActivation = ENABLE;
   HAL_StatusTypeDef HAL_Status=HAL_CAN_ConfigFilter(commu_t->hcan, &sFilterConfig);
   if(HAL_Status!=HAL_OK){
+    return HAL_Status;
   }
   // Setting up for can transmitter
   commu_t->TxMeg.IDE = CAN_ID_STD;    // use standard id length
   commu_t->TxMeg.RTR = CAN_RTR_DATA;  // 
   commu_t->TxMeg.DLC = 8;             // 8 bytes per transmit
   commu_t->TxMailbox = CAN_TX_MAILBOX0;
-  HAL_Status = HAL_CAN_Start(commu_t->hcan);
   if(HAL_Status!=HAL_OK){
+    return HAL_Status;
   }
+  HAL_Status = HAL_CAN_Start(commu_t->hcan);
+  HAL_CAN_ActivateNotification(commu_t->hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+  return HAL_Status;
 }
 
-HAL_StatusTypeDef send_msg(COMMU_CONFIG* commu_t, 
+HAL_StatusTypeDef send_msg(volatile COMMU_CONFIG* commu_t, 
     const uint16_t target_id, 
     volatile const COMMU_DATA * const pData){
   static uint8_t raw[8];
@@ -44,7 +49,7 @@ HAL_StatusTypeDef send_msg(COMMU_CONFIG* commu_t,
   return HAL_RetVal;
 }
 
-uint8_t poll_for_msg(COMMU_CONFIG* commu_t, volatile COMMU_DATA *pData){
+uint8_t poll_for_msg(volatile COMMU_CONFIG* commu_t, volatile COMMU_DATA *pData){
   static uint8_t raw[8];
   if (HAL_CAN_GetRxFifoFillLevel(commu_t->hcan, CAN_FIFO) > 0){
     HAL_CAN_GetRxMessage(commu_t->hcan, CAN_FIFO, &(commu_t->RxMeg), raw);

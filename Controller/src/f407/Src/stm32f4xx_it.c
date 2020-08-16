@@ -46,6 +46,7 @@
 /* USER CODE BEGIN PV */
 extern volatile AUTOPILOT_CONFIG Pilot;
 extern volatile BEEPER_CONFIG StatusBeeper;
+extern volatile COMMU_CONFIG Communicator;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,6 +60,7 @@ extern volatile BEEPER_CONFIG StatusBeeper;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern ADC_HandleTypeDef hadc1;
 extern CAN_HandleTypeDef hcan1;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
@@ -203,12 +205,34 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
+  */
+void ADC_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC_IRQn 0 */
+
+  /* USER CODE END ADC_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC_IRQn 1 */
+
+  /* USER CODE END ADC_IRQn 1 */
+}
+
+/**
   * @brief This function handles CAN1 RX0 interrupts.
   */
 void CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
-
+  poll_for_msg(&Communicator, &(Pilot.driver_data));
+  // Get new msg from driver
+  switch(Pilot.driver_data.mode){
+    // Receive velocity infomation from driver
+    case CONF_COMMU_MODE_VELOCITY:
+      Pilot.car.velocity_rear = Pilot.driver_data.data.fvalue;
+      break;
+  }
+  Pilot.driver_last_update_time = HAL_GetTick();
   /* USER CODE END CAN1_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan1);
   /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
@@ -247,8 +271,21 @@ void TIM7_IRQHandler(void)
 
   /* USER CODE END TIM7_IRQn 1 */
 }
-
 /* USER CODE BEGIN 1 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
+{
+  static float thr = 0;
+  Pilot.ADC_value = HAL_ADC_GetValue(hadc1);
+  if (Pilot.ADC_value < CONF_THROTTLE_MIN)  
+    thr = 0;
+  else
+    thr = (float)(Pilot.ADC_value - CONF_THROTTLE_MIN) / (CONF_THROTTLE_MAX - CONF_THROTTLE_MIN);
+  Pilot.car.throttle = thr;
+  //printf("\n\r ADC val == %d", adc_value);
 
+  HAL_ADC_Start_IT(hadc1); // Re-Start ADC1 under Interrupt
+                         // this is necessary because we don'use
+                         // the Continuos Conversion Mode
+}
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

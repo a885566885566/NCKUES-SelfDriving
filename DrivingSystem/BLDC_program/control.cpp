@@ -28,14 +28,21 @@ void control_set_mode(volatile CONTROL *ctrl, CONTROL_MODE mode){
     if (ctrl->mode == mode) return;
     switch (mode){
     case CONTROL_VELOCITY:
+        motor_key(true, CONF_MOTOR_CW);
         control_set_current(0);
+        PID_reset(&(motor.pid_current));
         break;
     case CONTROL_CURRENT:
+        motor_key(true, CONF_MOTOR_CW);
         control_set_speed(0);
+        PID_reset(&(motor.pid_velocity));
         break;
     default:
+        motor_key(false, CONF_MOTOR_CW);
         control_set_current(0);
         control_set_speed(0);
+        PID_reset(&(motor.pid_current));
+        PID_reset(&(motor.pid_velocity));
         break;
     }
     ctrl->mode = mode;

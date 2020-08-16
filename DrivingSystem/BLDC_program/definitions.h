@@ -25,6 +25,8 @@
 #define CONF_MOTOR_CW true
 #define CONF_MOTOR_CCW false
 
+//#define CONF_PID_D_ENABLE
+
 #define CONF_PWM_LIM 150    // upper and lower bound of velocity pwm out
 #define CONF_VELOCITY_RATIO      // omega = ratio * encoder
 #define CONF_OMEGA_LIM 1000      // motor angular velocity limit
@@ -32,6 +34,9 @@
 #define CONF_CURRENT_RATIO 1     // current(A) = ratio * analog read
 #define CONF_CURRENT_FILTER_DECAY 0.9
 #define CONF_CURRENT_BASELINE 509   // Value for zero current
+
+#define CONF_CURRENT_THRESHOLD 0.01     // If current lower than this, shut it down
+#define CONF_VELOCITY_THRESHOLD 0.01    // If velocity lower than this, shut it down
 
 #define CONF_CURRENT_LIM 0.5
 #define CONF_CURRENT_LIM_START 1    // current limit in ampere
@@ -44,10 +49,10 @@
 #define CONF_ENCODER_TS 100      // 50 ms, approximate speed with 10Hz
 #define CONF_ENCODER_TS_COUNT 200// 100 ms / 500 us, approximate speed with 10Hz
 
-#define CONF_CONTROL_CURRENT_DT  0.5   // current feedback loop 1 ms
-#define CONF_CONTROL_CURRENT_COUNT  1  // 2 * 500 us = 1 ms
-#define CONF_CONTROL_VELOCITY_DT  0.5  // velocity feedback loop 1 ms
-#define CONF_CONTROL_VELOCITY_COUNT 1  // 2 * 500 us = 1 ms
+#define CONF_CONTROL_CURRENT_DT  1   // current feedback loop 1 ms
+#define CONF_CONTROL_CURRENT_COUNT  2  // 2 * 500 us = 1 ms
+#define CONF_CONTROL_VELOCITY_DT  1  // velocity feedback loop 1 ms
+#define CONF_CONTROL_VELOCITY_COUNT 2  // 2 * 500 us = 1 ms
 
 #define CONF_MODE_VELOCITY 'V'  // velocity, drive motor to specific speed 
 #define CONF_MODE_CURRENT 'C'   // current, drive motor to specific current 

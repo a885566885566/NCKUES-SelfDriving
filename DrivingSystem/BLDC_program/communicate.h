@@ -7,7 +7,7 @@
 #include <mcp2515.h>
 #include "definitions.h"
 
-#define COMMUNICATE_SERAIL
+//#define COMMUNICATE_SERAIL
 #define COMMUNICATE_CANBUS
 #define STOP_CHAR ';'
 #define BUFFER_LENGTH 10

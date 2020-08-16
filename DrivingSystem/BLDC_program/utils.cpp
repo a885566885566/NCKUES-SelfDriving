@@ -69,7 +69,9 @@ double read_current(){
   // expontial dacay filter
   static double analog = CURRENT_SENSOR_BASE;
   analog = analog * CONF_CURRENT_FILTER_DECAY + analogRead(PIN_CUR_A) * (1-CONF_CURRENT_FILTER_DECAY);
-  return (analog - CURRENT_SENSOR_BASE)*150.0/512;
+  static double value = (analog - CURRENT_SENSOR_BASE)*150.0/512;
+  if (value > 0) return value;
+  return 0;
 }
 
 /* Setup buzzer pin */

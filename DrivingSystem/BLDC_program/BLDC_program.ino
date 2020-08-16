@@ -14,6 +14,8 @@ void setup(){
     pin_init();
     system_init();
     
+    Serial.begin(9600);
+
     // Init for can bus module
     commu_init(&commu);
     // Init for motor control parameters
@@ -27,11 +29,13 @@ void setup(){
     // Buzzer setting
     utils_beep_init(&buzzer, PIN_BUZZER);
     utils_beep_set(&buzzer, 1, 35, 2);
+    motor_key(true, CONF_MOTOR_CW);
 }
 
 void loop(){
     // Handle command from communication device
     command_process(&routine, &commu);
+    //motor_test(CONTROL_CURRENT);
 
     // Send velocity infomation back to Center Controller
     motor_info_report(&routine, &commu, &motor_state);
@@ -42,27 +46,32 @@ void loop(){
     debug_msg();
 }
 
-void motor_test(){
-    motor_key(true, CONF_MOTOR_CW);
-    /*
-    for(float i=0; i<0.6; i+=0.01){
-        PIDsetTarget( &(motor.pid_current), i );
-        delay(20);
+void motor_test(CONTROL_MODE mode){
+    if (mode == CONTROL_CURRENT){
+        motor_key(true, CONF_MOTOR_CW);
+        control_set_mode(&motor, CONTROL_CURRENT);
+        
+        for(float i=0; i<0.6; i+=0.01){
+            PIDsetTarget( &(motor.pid_current), i );
+            delay(20);
+        }
+        delay(3000);
+        for(float i=0.6; i>0; i-=0.01){
+            PIDsetTarget( &(motor.pid_current), i );
+            delay(20);
+        }
     }
-    delay(3000);
-    for(float i=0.6; i>0; i-=0.01){
-        PIDsetTarget( &(motor.pid_current), i );
-        delay(20);
-    }*/
-
-    for(float i=0; i<25; i+=0.1){
-        PIDsetTarget( &(motor.pid_velocity), i );
-        delay(2);
-    }
-    delay(5000);
-    for(float i=25; i>0; i-=0.1){
-        PIDsetTarget( &(motor.pid_velocity), i );
-        delay(2);
+    else if(mode == CONTROL_VELOCITY){
+        motor_key(true, CONF_MOTOR_CW);
+        for(float i=0; i<25; i+=0.1){
+            PIDsetTarget( &(motor.pid_velocity), i );
+            delay(2);
+        }
+        delay(5000);
+        for(float i=25; i>0; i-=0.1){
+            PIDsetTarget( &(motor.pid_velocity), i );
+            delay(2);
+        }
     }
     motor_key(false, CONF_MOTOR_CW);
     delay(1000);

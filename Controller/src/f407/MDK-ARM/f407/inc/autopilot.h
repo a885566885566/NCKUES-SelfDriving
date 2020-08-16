@@ -39,9 +39,12 @@ typedef struct{
   uint32_t navigator_last_update_time;
   COMMU_FLAF commu_driver_flag;     // Send request to driver
   COMMU_FLAF commu_navigator_flag;  // Send request to navigator
+  uint16_t driver_update_interval;
+  uint16_t navigator_update_interval;
   
   /* Sensors */
-  ADC_HandleTypeDef* throttle_adc;
+  ADC_HandleTypeDef* throttle_hadc;
+  uint32_t ADC_value;
   
   /* Tracking */
   volatile TRAJECTORY traj;
@@ -62,8 +65,7 @@ void autopilot_set_mode(volatile AUTOPILOT_CONFIG* pilot_t, PILOT_MODE mode);
  * and other sensors. Just put this function in main 
  * loop, then it can update the velocity information 
  * while any free time available. */
-void autopilot_sensor_update(volatile AUTOPILOT_CONFIG* pilot_t, 
-  COMMU_CONFIG *commu_driver);
+void autopilot_sensor_update(volatile AUTOPILOT_CONFIG* pilot_t);
 
 /* Perform action according to different mode. Put 
  * this function in ISR. */

@@ -37,10 +37,13 @@ int16_t delta = 1;
 uint32_t angle = 0;
 uint32_t rotation = 0;
 double speed;
-uint32_t ADC_Value[10];
-uint8_t i;
-uint8_t k;
-uint32_t adc;
+uint8_t num_of_msg = 10;
+uint32_t i=0;
+uint32_t last_time;
+double fvalue;
+char mode = 53;
+uint16_t adc_value;
+HAL_StatusTypeDef result;
 
 /* Autopilot module */
 volatile AUTOPILOT_CONFIG Pilot;
@@ -49,8 +52,7 @@ volatile AUTOPILOT_CONFIG Pilot;
 volatile BEEPER_CONFIG StatusBeeper;
 
 /* Communication module */
-COMMU_CONFIG Communicator;
-HAL_StatusTypeDef result;
+volatile COMMU_CONFIG Communicator;
 
 //COMMU_DATA CommuDriverTrans;
 //COMMU_DATA CommuDriverReci;
@@ -138,13 +140,15 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  communication_init(&Communicator, &hcan1);
+  result = communication_init(&Communicator, &hcan1);
   autopilot_init(&Pilot, &hadc1);
+  /*while(1){
+    Pilot.driver_cmd.mode = 'V';
+    Pilot.driver_cmd.data.fvalue = 3.7456;
+    HAL_Delay(10);
+    send_msg(&Communicator, CENTRAL_CONTROLLER_ID, &(Pilot.driver_cmd));
+  }*/
   utils_beep_init(&StatusBeeper, CONF_PIN_BUZZER_PORT, CONF_PIN_BUZZER_MASK);
-
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&ADC_Value, sizeof(ADC_Value));
-  HAL_ADC_Start(&hadc1);
-  
   
   // Time2, in encoder mode, speed feedback for turning motor 
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
@@ -163,7 +167,7 @@ int main(void)
   //turning_prepare(&YawControl, &StatusBeeper);
   while (1)
   {
-    autopilot_sensor_update(&Pilot, &Communicator);
+    autopilot_sensor_update(&Pilot);
     autopilot_commu_update(&Pilot, &Communicator);
     /* Turning Test
     count += delta;
@@ -244,7 +248,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -260,7 +264,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();

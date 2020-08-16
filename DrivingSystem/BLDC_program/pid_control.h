@@ -31,4 +31,5 @@ int16_t inline boundLimitInt(int16_t input, const int16_t upper, const int16_t l
 void PIDsetTarget(volatile PID_STRUCT *pid_t, double target);
 void PID_init(volatile PID_STRUCT *pid_t, double KP, double KI, double KD, double DT, double upper, double lower, double Decay);
 double PID_update(volatile PID_STRUCT *pid_t, double current);
+void PID_reset(volatile PID_STRUCT *pid_t);
 #endif

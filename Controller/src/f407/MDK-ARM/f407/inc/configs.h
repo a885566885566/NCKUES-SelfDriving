@@ -19,8 +19,8 @@
 
 /* Sensor correction constants */
 // throttle
-#define CONF_THROTTLE_MIN 0
-#define CONF_THROTTLE_MAX 2000
+#define CONF_THROTTLE_MIN 1300
+#define CONF_THROTTLE_MAX 4096
 // steering shaft
 #define CONF_SHAFT_RESOLUTION 33
 
@@ -28,6 +28,9 @@
 #define CONF_DRIVER_CYCLE_TIME 100  // ms
 
 /* Communication configuration */
+#define CENTRAL_CONTROLLER_ID 1
+#define MOTOR_DRIVER_ID 2
+#define NAVIGATOR_ID 3
 #define CONF_COMMU_MODE_VELOCITY 'V'  // velocity, drive motor to specific speed 
 #define CONF_COMMU_MODE_CURRENT 'C'   // current, drive motor to specific current
 #define CONF_COMMU_MODE_STOP  'S'     // stop, stop and release motor

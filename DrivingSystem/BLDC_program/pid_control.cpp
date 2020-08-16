@@ -27,22 +27,36 @@ void PID_init(volatile PID_STRUCT *pid_t, double KP, double KI, double KD, doubl
 
 double PID_update(volatile PID_STRUCT *pid_t, double current){
   // Calculate Error gain
+  static double G_out = 0;
+  static double I_out = 0;
+  static double D_out = 0;
+
   pid_t->error = pid_t->cmd - current;
-  double G_out = pid_t->kp * pid_t->error;
+  G_out = pid_t->kp * pid_t->error;
   
   // Calculate Intergral
   pid_t->intergral = pid_t->intergral + pid_t->error*pid_t->dt/1000.0;
   pid_t->intergral = constrain(pid_t->intergral, pid_t->lowerBound, pid_t->upperBound);
-  double I_out = pid_t->ki * pid_t->intergral;
+  I_out = pid_t->ki * pid_t->intergral;
   
+  #ifdef CONF_PID_D_ENABLE
   // Calculate Differential
   pid_t->derivative = 1000 * (pid_t->error - pid_t->pre_error) / pid_t->dt;
-  double D_out = pid_t->kd * pid_t->derivative;
+  D_out = pid_t->kd * pid_t->derivative;
   pid_t->derivative *= pid_t->decayRatio;
-  
+  #endif
+
   // Calculate output
   pid_t->output = constrain( G_out + I_out + D_out, pid_t->lowerBound, pid_t->upperBound);
   //pid_t->output = boundLimit( G_out + I_out + D_out, pid_t->upperBound, pid_t->lowerBound);//, pid_t->upperBound, pid_t->lowerBound);
   
   return pid_t->output;
+}
+
+void PID_reset(volatile PID_STRUCT *pid_t){
+  pid_t->error = 0;
+  pid_t->pre_error = 0;
+  pid_t->intergral = 0;
+  pid_t->derivative = 0;
+  pid_t->output = 0;
 }

@@ -1,3 +1,7 @@
+# C++ build
+NavigationSystem/src/Perception/build
+
+
 # CubeMx file
 .mxproject
 

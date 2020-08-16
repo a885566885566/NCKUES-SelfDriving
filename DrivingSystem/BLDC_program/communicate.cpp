@@ -71,8 +71,8 @@ void commu_send(COMMU* const commu, COMMAND* const cmd){
     commu->can_msg_tran.can_id = cmd->id;
     commu->can_msg_tran.can_dlc = 8;
     
-    for (int i=1; i<=CAN_DATA_LEN; i++)
-        commu->can_msg_tran.data[i] = cmd->data.array[i];
+    for (int i=0; i<CAN_DATA_LEN; i++)
+        commu->can_msg_tran.data[i+1] = cmd->data.array[i];
     mcp2515.sendMessage(&(commu->can_msg_tran));
     #endif
 }
