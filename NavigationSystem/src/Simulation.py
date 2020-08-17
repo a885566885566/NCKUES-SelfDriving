@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 
 class Car():
     def __init__(self):
-        """
-        y ^
-          |
-        lb|_____________ lt(left top) 
-          |             |   car moving direction
-    (0,0) |-------------|------->x
-        rb|_____________|rt(right top)
+        """      ^
+                 |
+        rl ______|______ lt(left top) 
+          |    (0,0)    |   car moving direction
+          |------+------|------->x
+        rb|______|______|rt(right top)
           |--lr--|--lf--| 
         
         unit: m
@@ -19,14 +18,40 @@ class Car():
         self.car_width = 1
         self.lr = self.car_length/2
         self.lf = self.car_length/2
-        self.lt = np.array(( self.car_length, self.car_width/2))
-        self.rt = np.array(( self.car_length, -self.car_width/2))
-        self.lb = np.array(( 0,  self.car_width/2))
-        self.rb = np.array(( 0, -self.car_width/2))
+        self.lt = np.array(( self.lf, self.car_width/2))
+        self.rt = np.array(( self.lf, -self.car_width/2))
+        self.lb = np.array(( -self.lr,  self.car_width/2))
+        self.rb = np.array(( -self.lr, -self.car_width/2))
+
+        # Kinectic Parameters
+        self.x = 0
+        self.y = 0
+        self.v = 0      # Rear wheel velocity
+        self.vf = 0     # Center velocity
+        self.beta = 0   # Velocity angle relative to yaw
+        self.yaw = 0    # Heading
+        self.steering = 0   # in Radiun
+
+    """
+    Update kinectic parameters according to current steering 
+    angle and rear wheel speed.
+    """
+    def update(self, dt):
+        self.beta = np.arctan(self.lr * np.tan(self.steering) / self.car_length)
+        self.vf = self.v / np.cos(self.steering)
+        local_p = self.vf * dt * np.array([np.cos(self.beta), np.sin(self.beta)])
+        [self.x, self.y] = Utils.trans_local_to_global(
+                np.array([self.x, self.y, self.yaw, self.vf]), 
+                local_p)
+        self.yaw += self.v * dt * np.tan(self.steering) / self.car_length 
+
+    def get_current_state(self):
+        return np.array([self.x, self.y, self.yaw, self.v])
 
 class Simulation():
     def __init__(self, wayplanner, car_scale):
-        self.waypoints = wayplanner.waypoints
+        if wayplanner is not None: 
+            self.waypoints = wayplanner.waypoints
         self.car = Car()
         self.scale = car_scale
 
@@ -77,9 +102,18 @@ class Simulation():
                  np.sin(current_state[2])])
         plt.arrow(current_state[0],
                   current_state[1],
-                  vec[0], vec[1], width=1)
+                  vec[0], vec[1], width=scale/10)
         return
     
+    def plot_vehicle_velocity(self, current_state, beta, scale=10):
+        self.plot_vehicle(current_state, scale)
+        vec = current_state[3] * np.array(
+                [np.cos(beta + current_state[2]),
+                 np.sin(beta + current_state[2])])
+        plt.arrow(current_state[0],
+                  current_state[1],
+                  vec[0], vec[1], width=scale/10, 
+                  color="orange")
     """
     Plot the car's marching line and the best_path.
     compare the path and the algorithm of car trying to catch the path
@@ -93,9 +127,11 @@ class Simulation():
             format: [[velocity, steer angle, time]
                      [velocity, steer angle, time]......]
     """
+    """
     def plot_best_path_and_estimated_lane(path, car_info):
         local_yaw = 0
         for i in range(len(car_info)-1):
             
         return
+    """
 
