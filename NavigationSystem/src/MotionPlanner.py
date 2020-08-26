@@ -153,8 +153,9 @@ class MotionPlanner():
     """
     def obstacles_filter(self, goal, obs, slope):
         # Filter out those behind the car
+        #TODO: the filter seems have problem, so we return right here.
         obs = obs[obs[:,0]>0]
-
+        return obs
         # Filter out those in front of car
         # The discriminant
         if slope >= 99999:  # Almost verticle
@@ -258,14 +259,66 @@ class MotionPlanner():
     """
     Choose best path according to `make_score` function.
     Input:
-        score: 1d array
         path_pts: A list of path in the local coordinate.
+        goal_state: current goal waypoint for the vehicle to reach in local coordinate.
+            format: [x_goal, y_goal, t, v_goal]
+        
+        path_validity: 1d array of boolen value to classify whether a path is 
+                       collision-free(True), or not(False).
     Output: path, 2d Array
     """
-    def choose_best_path(self, score, path_pts):
-        best_index = np.argmax(score)
+    def choose_best_path(self, path_pts, path_validity, last_path_idx):
+        
+        centerline_idx = int((len(path_pts)-1)/2)
+
+        if path_validity[centerline_idx]:
+            best_idx = centerline_idx
+            last_path_idx = best_idx
+            return path_pts[best_idx], best_idx, last_path_idx
+        
+        elif path_validity[last_path_idx]:
+            best_idx = last_path_idx
+            return path_pts[best_idx], best_idx, last_path_idx
+        
+        elif np.any(path_validity):
+            right_idx = last_path_idx
+            left_idx = last_path_idx
+            #print("\nlast_path_idx : ", last_path_idx)
+            while True:
+                #print("\nrighth_idx : ", right_idx)
+                #print("\nleft_idx : ", left_idx)
+                #print("\npath_validity[right_idx] : ", path_validity[right_idx])
+                #print("\npath_validity[left_idx] : ", path_validity[left_idx])
+                if right_idx + 1 <= len(path_pts)-1:
+                    right_idx = right_idx + 1
+                if left_idx - 1 >= 0:
+                    left_idx = left_idx - 1
+                    
+                if path_validity[right_idx] and path_validity[left_idx]:
+                    if right_idx - centerline_idx >= centerline_idx - left_idx:
+                        best_idx = right_idx
+                        last_path_idx = best_idx
+                        return path_pts[best_idx], best_idx, last_path_idx
+                    else:
+                        best_idx = left_idx
+                        last_path_idx = best_idx
+                        return path_pts[best_idx], best_idx, last_path_idx
+                
+                if path_validity[right_idx] and not(path_validity[left_idx]):
+                    best_idx = right_idx
+                    last_path_idx = best_idx
+                    return path_pts[best_idx], best_idx, last_path_idx
+                
+                if not(path_validity[right_idx]) and path_validity[left_idx]:
+                    best_idx = left_idx
+                    last_path_idx = best_idx
+                    return path_pts[best_idx], best_idx, last_path_idx
+        else:
+            # should output singal to break, because no path can follow
+            best_idx = last_path_idx
+            return path_pts[best_idx], best_idx, last_path_idx
         #print("\nbest_index: ", best_index)
-        return path_pts[best_index], best_index
+        #return path_pts[best_index], best_index, last_path_idx
 
     def generate_emergency_path(self):
         return
@@ -295,6 +348,8 @@ if __name__ == "__main__":
     
     plt.figure(num="Global Coordinate Map")
     
+    last_path_idx = 5
+    
     while way.available():
         # clear the window
         plt.cla()
@@ -309,8 +364,7 @@ if __name__ == "__main__":
         
         goal_state = Utils.trans_global_to_local(current_state, current_goal_waypoint[0:2])
         path_validity = mp.collision_checker(path_pts, danger)
-        score = mp.make_score(path_pts, goal_state, path_validity)
-        [best_path, best_idx] = mp.choose_best_path(score, path_pts)
+        [best_path, best_idx, last_path_idx] = mp.choose_best_path(path_pts, path_validity, last_path_idx)
         danger = Utils.trans_local_to_global(current_state, danger)
         
         sim.plot_obs(danger, "red")
@@ -323,15 +377,10 @@ if __name__ == "__main__":
         #TODO: implement the smith predictor in the below the code.
         #current_state[0:2] = Utils.trans_local_to_global(current_state, target_set[best_idx][0:2])
         #current_state[2] = target_set[best_idx][2])
-
+        
         # Load point at index 2 in best path as next state
         current_state[0:2] = Utils.trans_local_to_global(current_state, best_path[2][0:2])
         current_state[2] += best_path[2][2]
         #current_state = current_goal_waypoint 
-        
-        # compare the path and the algorithm of car trying to move along the path
-        for path in path_pts[path_validity]:
-            plt.plot(path[:,0], path[:,1], 'r-')
-            sim.plot_estimated_lane()
         
         plt.pause(0.1)

@@ -28,7 +28,7 @@ class Car_State(object):
         self.yaw = yaw
         self.v = v
         self.car = si.Car()
-        self.max_steer = np.radians(20)
+        self.max_steer = np.radians(30)
 
     def update(self, acceleration, delta, dt=0.1):
         """
@@ -270,12 +270,12 @@ if __name__ == "__main__":
     import VelocityProfile
     import MotionPlanner
     import Utils
-    import stanley_controller
+    import Stanley_Controller
 
     vel_config = VelocityProfile.VelocityConfig(10, 0.1, 0.1, -0.5)
     way = wp.WaypointsPlanner(vel_config)
     mp = MotionPlanner.MotionPlanner()
-    stm = stanley_controller.controller()
+    stm = Stanley_Controller.controller()
 
     sim = si.Simulation(way, 10)
     
@@ -285,11 +285,12 @@ if __name__ == "__main__":
     current_state = way.load_waypoint(current_state)
     print("current_state  : ", current_state)
     # simulate some obstacles
-    sim_obs = way.waypoints[:,0:2] + 50*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
+    sim_obs = way.waypoints[:,0:2] + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
     
     plt.figure(num="Global Coordinate Map")
     
     counter = 0
+    last_path_idx = 5
     
     while np.linalg.norm(current_state[0:2] - way.waypoints[-1][0:2])>3:
         # clear the window
@@ -317,23 +318,22 @@ if __name__ == "__main__":
                        
             goal_state = Utils.trans_global_to_local(current_state, current_goal_waypoint[0:2])
             path_validity = mp.collision_checker(path_pts, danger)
-            score = mp.make_score(path_pts, goal_state, path_validity)
-            [best_path, best_idx] = mp.choose_best_path(score, path_pts)
+            [best_path, best_idx, last_path_idx] = mp.choose_best_path(path_pts, path_validity, last_path_idx)
             
 
             danger = Utils.trans_local_to_global(current_state, danger)
-            sim.plot_obs(danger, "yellow")
+            sim.plot_obs(danger, "blue")
             sim.scatter_with_local(current_state, target_set[:,0:2], '.', 'red')
 
             for path in path_pts[path_validity]:
-                sim.plot_with_local(current_state, path, 'g-')
+                sim.plot_with_local(current_state, path[:, 0:2], 'g-')
 
             stm.update_path(best_path)
 
         stm.path_tracking(current_goal_waypoint[3])
 
         # plot the best path on global frame
-        sim.plot_with_local(current_state, best_path, 'y-')
+        sim.plot_with_local(current_state, best_path[:, 0:2], 'y-')
 
         current_state[0:2] = Utils.trans_local_to_global(current_state, np.array([stm.car_state.x, stm.car_state.y]))
         current_state[2] += stm.car_state.yaw
