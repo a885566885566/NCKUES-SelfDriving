@@ -14,7 +14,7 @@ void motor_init(volatile MOTOR_CONFIG* const motor,
     uint32_t enc, uint32_t res, 
     uint32_t Dt, uint32_t Max){
       
-  motor->direction = 0;
+  motor->direction = 0; 
   motor->speed = 0;
   motor->rotation = 0;
   motor->cmd = 0;

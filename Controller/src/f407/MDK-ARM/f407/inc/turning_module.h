@@ -18,8 +18,8 @@ typedef enum {
 
 typedef struct{
   TURNING_MODE mode;
-  float cmdAngle;
-  float shaftAngle;
+  double cmdAngle;
+  double shaftAngle;
   
   GPIO_TypeDef* zeroPort;
   uint32_t zeroMask;

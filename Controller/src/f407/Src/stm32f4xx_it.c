@@ -47,6 +47,7 @@
 extern volatile AUTOPILOT_CONFIG Pilot;
 extern volatile BEEPER_CONFIG StatusBeeper;
 extern volatile COMMU_CONFIG Communicator;
+extern volatile COMMU_CONFIG NavigatorCommunicator;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +63,7 @@ extern volatile COMMU_CONFIG Communicator;
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
 extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 /* USER CODE BEGIN EV */
@@ -229,10 +231,10 @@ void CAN1_RX0_IRQHandler(void)
   switch(Pilot.driver_data.mode){
     // Receive velocity infomation from driver
     case CONF_COMMU_MODE_VELOCITY:
-      Pilot.car.velocity_rear = Pilot.driver_data.data.fvalue;
+      Pilot.driver_last_update_time = HAL_GetTick();
+      Pilot.car.velocity_rear = CONF_GEAR_RATIO * Pilot.driver_data.data.fvalue;
       break;
   }
-  Pilot.driver_last_update_time = HAL_GetTick();
   /* USER CODE END CAN1_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan1);
   /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
@@ -247,8 +249,9 @@ void TIM6_DAC_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
   /* Turnning control main loop with 1kHz */
+  utils_beep_update(&StatusBeeper);
   turning_update(&(Pilot.YawControl));
-  
+  autopilot_car_model_predictor(&Pilot);
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
@@ -262,8 +265,7 @@ void TIM6_DAC_IRQHandler(void)
 void TIM7_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM7_IRQn 0 */
-  /* Path tracking main loop with 1kHz */
-  utils_beep_update(&StatusBeeper);
+  /* Path tracking main loop with 100 Hz */
   autopilot_kernel_update(&Pilot);
   /* USER CODE END TIM7_IRQn 0 */
   HAL_TIM_IRQHandler(&htim7);
@@ -271,6 +273,26 @@ void TIM7_IRQHandler(void)
 
   /* USER CODE END TIM7_IRQn 1 */
 }
+
+extern uint32_t aaa;
+/**
+  * @brief This function handles CAN2 RX1 interrupt.
+  */
+void CAN2_RX1_IRQHandler(void)
+{
+  /* USER CODE BEGIN CAN2_RX1_IRQn 0 */
+  aaa++;
+  static uint8_t available;
+  available = update_navigator_msg(&NavigatorCommunicator, &(Pilot.traj));
+  if (available > 0)
+    Pilot.navigator_last_update_time = HAL_GetTick();
+  /* USER CODE END CAN2_RX1_IRQn 0 */
+  HAL_CAN_IRQHandler(&hcan2);
+  /* USER CODE BEGIN CAN2_RX1_IRQn 1 */
+
+  /* USER CODE END CAN2_RX1_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {

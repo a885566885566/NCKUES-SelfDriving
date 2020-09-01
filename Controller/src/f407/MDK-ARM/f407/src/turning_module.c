@@ -40,6 +40,7 @@ void turning_init(volatile TURNING_CONFIG *const turning,
 void turning_prepare(volatile TURNING_CONFIG *const turning, 
     volatile BEEPER_CONFIG *const beeper){
   utils_beep_set(beeper, 1, 500, 10);
+  turning_set_mode(turning, SPEED_CONTROL);
   
   PIDsetTarget(&(turning->PID_motor), 0.5);
   for(int i=0; i<3000; i++){
@@ -59,7 +60,7 @@ void turning_prepare(volatile TURNING_CONFIG *const turning,
   *(turning->shaftEncoder) = 0x8FFF;
   utils_beep_set(beeper, 1, 100, 2);
   HAL_Delay(1000);
-  turning->mode = POSITION_CONTROL;
+  turning_set_mode(turning, FREE);
 }
 
 void turning_set_mode(volatile TURNING_CONFIG *const turning, const TURNING_MODE mode){
@@ -70,17 +71,23 @@ void turning_set_mode(volatile TURNING_CONFIG *const turning, const TURNING_MODE
   }
   else 
     HAL_GPIO_WritePin(turning->clutchPort, turning->clutchMask, GPIO_PIN_SET);
+
+  // Reset PID controller parameters
+  PID_reset(&(turning->PID_motor));
+  PID_reset(&(turning->PID_turning));
+  motor_emergency_stop(&(turning->motor));
   turning->mode = mode;
 }
 
 void turning_update(volatile TURNING_CONFIG *const turning){
+  motor_read_speed(&(turning->motor), *(turning->motorEncoder));
+  turning->shaftAngle = ((double)0x8FFF - (double)*(turning->shaftEncoder))/CONF_SHAFT_RESOLUTION;
   if (turning->mode != FREE){
-    motor_read_speed(&(turning->motor), *(turning->motorEncoder));
+    // Speed control
     turning->motor.acc += PID_update(&(turning->PID_motor), turning->motor.speed);
     motor_drive(&(turning->motor));
     
     if(turning->mode == POSITION_CONTROL){
-      turning->shaftAngle = ((double)0x8FFF - (double)*(turning->shaftEncoder))/CONF_SHAFT_RESOLUTION;
       double Vcmd = -PID_update(&(turning->PID_turning), turning->shaftAngle);
       PIDsetTarget(&(turning->PID_motor), Vcmd);
     }

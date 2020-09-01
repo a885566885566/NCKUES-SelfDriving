@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;                       ../Drivers/STM32F4xx_HAL_Driver/Inc;                       ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;                       ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;                       ../Drivers/CMSIS/Include;                       ./f407/inc</IncludePath>
+              <IncludePath>../Inc;                             ../Drivers/STM32F4xx_HAL_Driver/Inc;                             ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;                             ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;                             ../Drivers/CMSIS/Include;                             ./f407/inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -461,6 +461,16 @@
               <FileName>configs.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\f407\inc\configs.h</FilePath>
+            </File>
+            <File>
+              <FileName>path_tracking.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\f407\src\path_tracking.c</FilePath>
+            </File>
+            <File>
+              <FileName>path_tracking.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\f407\inc\path_tracking.h</FilePath>
             </File>
           </Files>
         </Group>

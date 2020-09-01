@@ -37,14 +37,23 @@ int16_t delta = 1;
 uint32_t angle = 0;
 uint32_t rotation = 0;
 double speed;
-uint8_t num_of_msg = 10;
-uint32_t i=0;
-uint32_t last_time;
+uint16_t num_of_msg = 0;
+uint32_t aaa = 0;
+uint32_t sid;
 double fvalue;
 char mode = 53;
 uint16_t adc_value;
 HAL_StatusTypeDef result;
-
+/*
+uint8_t a;
+uint8_t b;
+uint8_t c;
+uint8_t d;
+uint8_t e;
+uint8_t f;
+uint8_t g;
+uint8_t h;
+*/
 /* Autopilot module */
 volatile AUTOPILOT_CONFIG Pilot;
 
@@ -53,6 +62,7 @@ volatile BEEPER_CONFIG StatusBeeper;
 
 /* Communication module */
 volatile COMMU_CONFIG Communicator;
+volatile COMMU_CONFIG NavigatorCommunicator;
 
 //COMMU_DATA CommuDriverTrans;
 //COMMU_DATA CommuDriverReci;
@@ -141,6 +151,7 @@ int main(void)
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   result = communication_init(&Communicator, &hcan1);
+  result = commu_navigator_init(&NavigatorCommunicator, &hcan2);
   autopilot_init(&Pilot, &hadc1);
   /*while(1){
     Pilot.driver_cmd.mode = 'V';
@@ -164,11 +175,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //turning_prepare(&YawControl, &StatusBeeper);
+  // Start system up reset
+  autopilot_set_mode(&Pilot, SYSTEM_UP);
+  //turning_prepare(&(Pilot.YawControl), &StatusBeeper);
+  autopilot_car_model_reset(&Pilot);
+  autopilot_set_mode(&Pilot, PILOT_MANUAL);
   while (1)
   {
     autopilot_sensor_update(&Pilot);
-    autopilot_commu_update(&Pilot, &Communicator);
+    //autopilot_commu_update(&Pilot, &Communicator);
+    //result = send_navigator_msg(&NavigatorCommunicator);
+    num_of_msg++;
+    HAL_Delay(100);
     /* Turning Test
     count += delta;
     if( count >= 25 || count <= -25) delta *= -1;
@@ -327,7 +345,7 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
-  hcan2.Init.Prescaler = 6;
+  hcan2.Init.Prescaler = 12;
   hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan2.Init.TimeSeg1 = CAN_BS1_3TQ;
@@ -577,7 +595,7 @@ static void MX_TIM7_Init(void)
   htim7.Init.Prescaler = 84;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 999;
-  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
     Error_Handler();

@@ -12,21 +12,28 @@
 #include "motor_control.h"
 #include "turning_module.h"
 
-typedef enum { PILOT_RESET, PILOT_MANUAL, PILOT_AUTO}PILOT_MODE;
+typedef enum { PILOT_RESET, SYSTEM_UP, PILOT_MANUAL, PILOT_AUTO}PILOT_MODE;
 typedef enum {EMPTY, PENDING}COMMU_FLAF;
 
 
 /* Real time physical car states */
 typedef struct{
-  float velocity_rear;
-  float angle_steering;  // degree
-  float throttle;        // percentage
+  double x;
+  double y;
+  double yaw;
+  double velocity_rear;
+  double angle_steering;  // degree
+  double throttle;        // percentage
+  double beta;            // angle of center velocity
 } CAR_STATE;
 
 /* Reference trajectory */
 typedef struct{
-  float a;
-  float b;
+  double a;
+  double b;
+  double vs;
+  double ve;
+  int8_t is_new;
 } TRAJECTORY;
 
 typedef struct{
@@ -74,4 +81,11 @@ void autopilot_kernel_update(volatile AUTOPILOT_CONFIG* pilot_t);
 /* Perform message sending in main loop. */
 void autopilot_commu_update(volatile AUTOPILOT_CONFIG* pilot_t,
     COMMU_CONFIG* commu_drive);
+
+uint8_t update_navigator_msg(volatile COMMU_CONFIG* commu_t, volatile TRAJECTORY *traj);
+
+/* Predict car motion with infomation of rear velocity and steering angle. */
+void autopilot_car_model_predictor(volatile AUTOPILOT_CONFIG* pilot_t);
+
+void autopilot_car_model_reset(volatile AUTOPILOT_CONFIG* pilot_t);
 #endif 

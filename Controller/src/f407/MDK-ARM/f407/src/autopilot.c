@@ -1,4 +1,6 @@
 #include "autopilot.h"
+#include <string.h>
+#include <math.h>
 
 void autopilot_init(volatile AUTOPILOT_CONFIG* pilot_t, ADC_HandleTypeDef* const adc_t){
   /* Autopilot module init */
@@ -19,12 +21,16 @@ void autopilot_init(volatile AUTOPILOT_CONFIG* pilot_t, ADC_HandleTypeDef* const
     &(TIM2->CNT), 
     &(TIM4->CNT), 
     &(TIM3->CCR1));
+  autopilot_set_mode(pilot_t, PILOT_RESET);
 }
 
 void autopilot_set_mode(volatile AUTOPILOT_CONFIG* const pilot_t, const PILOT_MODE mode){
   if (mode == PILOT_RESET){
     turning_set_mode(&(pilot_t->YawControl), FREE);
     pilot_t->cmd_longitude_vel = 0;
+    pilot_t->cmd_motor_current = 0;
+  }
+  else if (mode == SYSTEM_UP){
     pilot_t->cmd_motor_current = 0;
   }
   else if (mode == PILOT_MANUAL){
@@ -53,7 +59,8 @@ void autopilot_sensor_update(volatile AUTOPILOT_CONFIG* const pilot_t){
   }*/
   
   /* STEERING */
-  pilot_t->car.angle_steering = pilot_t->YawControl.shaftAngle;
+  // From degree to radian
+  pilot_t->car.angle_steering = pilot_t->YawControl.shaftAngle * MATH_PI / 180.0;
   
   /* THROTTLE */
   // Did in interrupt
@@ -66,24 +73,26 @@ void autopilot_kernel_update(volatile AUTOPILOT_CONFIG* const pilot_t){
   now_tick = HAL_GetTick();
   pilot_t->driver_update_interval = now_tick - pilot_t->driver_last_update_time;
   pilot_t->navigator_update_interval = now_tick - pilot_t->navigator_last_update_time;
-  if ( pilot_t->driver_update_interval > CONF_DRIVER_COMMU_SAFE_TIME ||
-       pilot_t->navigator_update_interval > CONF_NAVIGATOR_COMMU_SAFE_TIME){
-  //if ( pilot_t->driver_update_interval > CONF_DRIVER_COMMU_SAFE_TIME ){
-    autopilot_set_mode(pilot_t, PILOT_MANUAL);
-  }
-  
-  if (pilot_t->pilot_mode == PILOT_MANUAL){
-    pilot_t->cmd_motor_current = pilot_t->car.throttle;
-  }
-  else if (pilot_t->pilot_mode == PILOT_AUTO){
-    /* Longitude tracking */
-    pilot_t->cmd_longitude_vel = 00000000;
+  if (pilot_t->pilot_mode != RESET && pilot_t->pilot_mode != SYSTEM_UP ){
+    if ( pilot_t->driver_update_interval > CONF_DRIVER_COMMU_SAFE_TIME ||
+         pilot_t->navigator_update_interval > CONF_NAVIGATOR_COMMU_SAFE_TIME){
+    //if ( pilot_t->driver_update_interval > CONF_DRIVER_COMMU_SAFE_TIME ){
+      autopilot_set_mode(pilot_t, PILOT_MANUAL);
+    }
     
-    /* Lateral tracking */
-    PIDsetTarget(&(pilot_t->YawControl.PID_turning), pilot_t->cmd_steering);
+    if (pilot_t->pilot_mode == PILOT_MANUAL){
+      pilot_t->cmd_motor_current = pilot_t->car.throttle;
+    }
+    else if (pilot_t->pilot_mode == PILOT_AUTO){
+      /* Longitude tracking */
+      pilot_t->cmd_longitude_vel = 00000000;
+      
+      /* Lateral tracking */
+      //PIDsetTarget(&(pilot_t->YawControl.PID_turning), pilot_t->cmd_steering);
+    }
+    // Set communication flag
+    pilot_t->commu_driver_flag = PENDING;
   }
-  // Set communication flag
-  pilot_t->commu_driver_flag = PENDING;
 }
 
 void autopilot_commu_update(volatile AUTOPILOT_CONFIG* const pilot_t,
@@ -110,3 +119,66 @@ void autopilot_commu_update(volatile AUTOPILOT_CONFIG* const pilot_t,
   }
 }
 
+extern uint32_t sid;
+uint8_t update_navigator_msg(volatile COMMU_CONFIG* commu_t, volatile TRAJECTORY *traj){
+  static COMMU_DATA_DOUBLE raw;
+  if (HAL_CAN_GetRxFifoFillLevel(commu_t->hcan, CAN_NAVIGATOR_FIFO) > 0){
+    HAL_CAN_GetRxMessage(commu_t->hcan, CAN_NAVIGATOR_FIFO, &(commu_t->RxMeg), raw.array);
+    sid = commu_t->RxMeg.StdId;
+    switch(commu_t->RxMeg.StdId){
+      case (NAVIGATOR_ID << NAVIGATOR_ID_OFFSET) + NAVIGATOR_ID_A:
+        traj->a = raw.fvalue;
+        break;
+      case (NAVIGATOR_ID << NAVIGATOR_ID_OFFSET) + NAVIGATOR_ID_B:
+        traj->b = raw.fvalue;
+        break;
+      case (NAVIGATOR_ID << NAVIGATOR_ID_OFFSET) + NAVIGATOR_ID_C:
+        traj->vs = raw.fvalue;
+        break;
+      case (NAVIGATOR_ID << NAVIGATOR_ID_OFFSET) + NAVIGATOR_ID_D:
+        traj->ve = raw.fvalue;
+        break;
+    }
+    return commu_t->RxMeg.DLC;
+  }
+  return 0;
+}
+
+/*
+ * Simulation car motion with kinectic car model.
+ *              LR * tan(delta)               v
+ * beta = atan(-----------------),  vf = ------------
+ *                    LEN                 cos(delta)
+ *                     
+ * local_p = vf * dt * [cos(beta), sin(beta)].T
+ *                 | cos(yaw) -sin(yaw) |
+ * p(t+1) = p(t) + |                    |
+ *                 | sin(yaw)  cos(yaw) |
+ *                      v * dt * tan(delta)
+ * yaw(t+1) = yaw(t) + ---------------------
+ *                            LEN
+ */
+void autopilot_car_model_predictor(volatile AUTOPILOT_CONFIG* pilot_t){
+  static double vf=0;
+  // C.G. velocity angle
+  (pilot_t->car).beta = atan(CONF_CAR_LR*tan((pilot_t->car).angle_steering)/CONF_CAR_LEN);
+  // C.G. velocity 
+  vf = (pilot_t->car).velocity_rear / cos((pilot_t->car).angle_steering);
+  // Update car position
+  (pilot_t->car).x += vf*CONF_CAR_MODEL_UPDATE_DT*(
+      cos((pilot_t->car).yaw) * cos((pilot_t->car).beta) 
+    - sin((pilot_t->car).yaw) * sin((pilot_t->car).beta)  );
+  
+  (pilot_t->car).y += vf*CONF_CAR_MODEL_UPDATE_DT*(
+      sin((pilot_t->car).yaw) * cos((pilot_t->car).beta) 
+    + cos((pilot_t->car).yaw) * sin((pilot_t->car).beta)  );
+  
+  // Update yaw
+  (pilot_t->car).yaw += (pilot_t->car).velocity_rear * CONF_CAR_MODEL_UPDATE_DT* tan((pilot_t->car).angle_steering) / CONF_CAR_LEN;
+}
+
+void autopilot_car_model_reset(volatile AUTOPILOT_CONFIG* pilot_t){
+  pilot_t->car.x = 0;
+  pilot_t->car.y = 0;
+  pilot_t->car.yaw = 0;
+}

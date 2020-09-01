@@ -35,12 +35,21 @@ double PID_update(volatile PID_STRUCT *pid_t, double current){
   double I_out = pid_t->ki * pid_t->intergral;
   
   // Calculate Differential
+  /*
   pid_t->derivative = 1000 * (pid_t->error - pid_t->pre_error) / pid_t->dt;
   double D_out = pid_t->kd * pid_t->derivative;
   pid_t->derivative *= pid_t->decayRatio;
-  
+  */
   // Calculate output
-  pid_t->output = boundLimit( G_out + I_out + D_out, 1000, -1000);//, pid_t->upperBound, pid_t->lowerBound);
+  //pid_t->output = boundLimit( G_out + I_out + D_out, 1000, -1000);//, pid_t->upperBound, pid_t->lowerBound);
+  pid_t->output = boundLimit( G_out + I_out + 0, 1000, -1000);//, pid_t->upperBound, pid_t->lowerBound);
   
   return pid_t->output;
+}
+
+void PID_reset(volatile PID_STRUCT *pid_t){
+  pid_t->cmd = 0;
+  pid_t->error = 0;
+  pid_t->intergral = 0;
+  pid_t->derivative = 0;
 }
