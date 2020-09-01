@@ -1,6 +1,7 @@
 import numpy as np
 import Simulation
 import matplotlib.pyplot as plt
+import Utils 
 
 class Controller():
     def __init__(self, a, b):
@@ -29,6 +30,14 @@ class Controller():
         xi = (b2 - b1)/(s1 - s2)
         yi = s1 * xi + b1
         return xi, yi 
+
+    def angle_normalize(self, angle):
+        while angle > np.pi:
+            angle -= 2*np.pi
+        while angle < -np.pi:
+            angle += 2*np.pi
+        return angle
+
 
 class LookAheadStanley(Controller):
     def __init__(self, a, b):
@@ -73,6 +82,30 @@ class LookAheadStanley(Controller):
         steering = s if steering>s else -s if steering<-s else steering
         return steering 
 
+class StanleyControl(Controller):
+    def __init__(self, a, b):
+        super().__init__(a, b)
+        self.max_steering_angle = 0.7
+
+    def calc_lookahead(self, x, y, v, yaw, t):
+        self.front = Utils.trans_local_to_global(
+                np.array([x, y, yaw, v]), 
+                np.array([0.65, 0]))
+        return self.front[0], self.calc_y(self.front[0])
+
+    def stanley(self, car, look, k):
+        target_yaw = np.arctan(self.calc_slope(look[0]))
+        #target_yaw = self.angle_normalize(target_yaw)
+        theta_e = car.yaw - target_yaw
+        theta_e = self.angle_normalize(theta_e)
+        delta = self.front - look
+        e = delta[0]*(-np.cos(car.yaw+np.pi/2)) + \
+            delta[1]*(-np.sin(car.yaw+np.pi/2))
+
+        theta_d = np.arctan(k * e / car.vf)
+        steering = self.angle_normalize(theta_e + theta_d)
+        return steering
+
 def main():
     import VelocityProfile 
     sim = Simulation.Simulation(None, 0.1)
@@ -83,6 +116,7 @@ def main():
 
     car = Simulation.Car()
     TrajCtrl = LookAheadStanley(a, b)
+    #TrajCtrl = StanleyControl(a, b)
 
     # Plot trajectory
     traj_x = np.arange(100)/10  # 10 meters away
@@ -91,8 +125,8 @@ def main():
     # Initial condition
     car.v = 1
     car.y = -0.1
-    car.steering = 2
-    car.yaw = 2
+    car.steering = 0
+    car.yaw = 0
 
     plt.xlim(0, 10)
     plt.ylim(0, 10)
@@ -102,7 +136,7 @@ def main():
         sim.plot_vehicle_velocity(car.get_current_state(), car.beta, scale=0.1)
 
         # Calculate reference look ahead point
-        look = TrajCtrl.calc_lookahead(car.x, car.y, car.vf, car.beta+car.yaw, 0.1)
+        look = TrajCtrl.calc_lookahead(car.x, car.y, car.vf, car.beta+car.yaw, 1)
 
         # Calculate steering angle command
         steering = TrajCtrl.stanley(car, look, 5)
