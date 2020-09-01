@@ -63,8 +63,8 @@ class WaypointsPlanner():
 
         # Rule for the choice for the next waypoint
         while idx < len(dists)-1 and dist_sum < self.__look_ahead_function(current_state):
-            dist_sum += dists[idx]
-            #dist_sum = dists[idx]
+            #dist_sum += dists[idx]
+            dist_sum = dists[idx]
             idx += 1
 
         self.current_idx += idx  # `dists` start from current_idx
@@ -101,7 +101,7 @@ class WaypointsPlanner():
     velocity.
     """
     def __look_ahead_function(self, current_state):
-        return (current_state[2]+8) * 5
+        return (current_state[2]+15)
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
