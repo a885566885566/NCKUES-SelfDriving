@@ -47,7 +47,7 @@ class Listener():
                 data.pose.orientation.y,
                 data.pose.orientation.z, 
                 data.pose.orientation.w)
-        self.position[3]=euler[2]*57.29
+        self.position[3]=euler[0] # the yaw unit is radian
         self.position[4]=rospy.get_rostime().secs
         #rospy.loginfo(self.position)
     

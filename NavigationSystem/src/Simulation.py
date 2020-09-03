@@ -87,8 +87,11 @@ class Simulation():
             1d for 1 point, 2d for multiple points.
     """
     def scatter_with_local(self, current_state, points, marker, color, scale=1):
-        n_points   = Utils.trans_local_to_global(current_state, points, scale)
-        plt.scatter(n_points[:,0], n_points[:,1], color=color, marker=marker)
+        n_points = Utils.trans_local_to_global(current_state, points, scale)
+        if len(n_points.shape) >= 2:
+            plt.scatter(n_points[:,0], n_points[:,1], color=color, marker=marker)
+        else:
+            plt.scatter(n_points[0], n_points[1], color=color, marker=marker)
         return 
 
     def plot_vehicle(self, current_state, scale=10):
