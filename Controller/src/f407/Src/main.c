@@ -24,50 +24,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "configs.h"
-#include "utils.h"
+#include "utils.hpp"
 #include "stdio.h"
-#include "communication.h"
-#include "autopilot.h"
+#include "autopilot.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-int16_t count = 0;
-int16_t delta = 1;
-uint32_t angle = 0;
-uint32_t rotation = 0;
-double speed;
-uint16_t num_of_msg = 0;
-uint32_t aaa = 0;
-uint32_t sid;
-double fvalue;
-char mode = 53;
-uint16_t adc_value;
-HAL_StatusTypeDef result;
-/*
-uint8_t a;
-uint8_t b;
-uint8_t c;
-uint8_t d;
-uint8_t e;
-uint8_t f;
-uint8_t g;
-uint8_t h;
-*/
-/* Autopilot module */
-volatile AUTOPILOT_CONFIG Pilot;
-
-/* Warnning indicator */
-volatile BEEPER_CONFIG StatusBeeper;
-
-/* Communication module */
-volatile COMMU_CONFIG Communicator;
-volatile COMMU_CONFIG NavigatorCommunicator;
-
-//COMMU_DATA CommuDriverTrans;
-//COMMU_DATA CommuDriverReci;
-                        
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -111,6 +74,10 @@ static void MX_TIM7_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/* Autopilot module */
+AutopilotSystem pilot(&hadc1, &hcan1, &hcan2);
+/* Warnning indicator */
+Buzzer buz(CONF_PIN_BUZZER_PORT, CONF_PIN_BUZZER_MASK);
 /* USER CODE END 0 */
 
 /**
@@ -150,16 +117,6 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  result = communication_init(&Communicator, &hcan1);
-  result = commu_navigator_init(&NavigatorCommunicator, &hcan2);
-  autopilot_init(&Pilot, &hadc1);
-  /*while(1){
-    Pilot.driver_cmd.mode = 'V';
-    Pilot.driver_cmd.data.fvalue = 3.7456;
-    HAL_Delay(10);
-    send_msg(&Communicator, CENTRAL_CONTROLLER_ID, &(Pilot.driver_cmd));
-  }*/
-  utils_beep_init(&StatusBeeper, CONF_PIN_BUZZER_PORT, CONF_PIN_BUZZER_MASK);
   
   // Time2, in encoder mode, speed feedback for turning motor 
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
@@ -171,28 +128,21 @@ int main(void)
   // Main loop for Path tracking
   HAL_TIM_Base_Start_IT(&htim7);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  
+  pilot = AutopilotSystem(&hadc1, &hcan1, &hcan2);
+  buz = Buzzer(CONF_PIN_BUZZER_PORT, CONF_PIN_BUZZER_MASK);
+  
+  pilot.steering_sys.prepare(&buz);
+  pilot.engine_sys.prepare();
+  pilot.prepare();
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  // Start system up reset
-  autopilot_set_mode(&Pilot, SYSTEM_UP);
-  //turning_prepare(&(Pilot.YawControl), &StatusBeeper);
-  autopilot_car_model_reset(&Pilot);
-  autopilot_set_mode(&Pilot, PILOT_MANUAL);
   while (1)
   {
-    autopilot_sensor_update(&Pilot);
-    //autopilot_commu_update(&Pilot, &Communicator);
-    //result = send_navigator_msg(&NavigatorCommunicator);
-    num_of_msg++;
     HAL_Delay(100);
-    /* Turning Test
-    count += delta;
-    if( count >= 25 || count <= -25) delta *= -1;
-    rotation = TIM4->CNT;
-    PIDsetTarget(&(Pilot.YawControl.PID_turning), count);
-    */
   }
     /* USER CODE END WHILE */
 

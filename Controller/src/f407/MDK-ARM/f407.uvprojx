@@ -10,8 +10,9 @@
       <TargetName>f407</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060750::V5.06 update 6 (build 750)::ARMCC</pCCUsed>
-      <uAC6>0</uAC6>
+      <pArmCC>6130001::V6.13.1::.\ARMCLANG</pArmCC>
+      <pCCUsed>6130001::V6.13.1::.\ARMCLANG</pCCUsed>
+      <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F407VGTx</Device>
@@ -312,7 +313,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>7</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -327,15 +328,15 @@
             <uC99>1</uC99>
             <uGnu>0</uGnu>
             <useXO>0</useXO>
-            <v6Lang>1</v6Lang>
-            <v6LangP>1</v6LangP>
+            <v6Lang>3</v6Lang>
+            <v6LangP>3</v6LangP>
             <vShortEn>1</vShortEn>
             <vShortWch>1</vShortWch>
             <v6Lto>0</v6Lto>
             <v6WtE>0</v6WtE>
             <v6Rtti>0</v6Rtti>
             <VariousControls>
-              <MiscControls></MiscControls>
+              <MiscControls>-Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-global-constructors  -Wno-missing-variable-declarations</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx</Define>
               <Undefine></Undefine>
               <IncludePath>../Inc;                             ../Drivers/STM32F4xx_HAL_Driver/Inc;                             ../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;                             ../Drivers/CMSIS/Device/ST/STM32F4xx/Include;                             ../Drivers/CMSIS/Include;                             ./f407/inc</IncludePath>
@@ -384,12 +385,12 @@
           <Files>
             <File>
               <FileName>main.c</FileName>
-              <FileType>1</FileType>
+              <FileType>8</FileType>
               <FilePath>../Src/main.c</FilePath>
             </File>
             <File>
               <FileName>stm32f4xx_it.c</FileName>
-              <FileType>1</FileType>
+              <FileType>8</FileType>
               <FilePath>../Src/stm32f4xx_it.c</FilePath>
             </File>
             <File>
@@ -398,64 +399,59 @@
               <FilePath>../Src/stm32f4xx_hal_msp.c</FilePath>
             </File>
             <File>
-              <FileName>motor_control.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\motor_control.h</FilePath>
+              <FileName>motor_control.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\motor_control.hpp</FilePath>
             </File>
             <File>
-              <FileName>pid_control.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\pid_control.h</FilePath>
+              <FileName>pid_control.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\pid_control.hpp</FilePath>
             </File>
             <File>
-              <FileName>motor_control.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\motor_control.c</FilePath>
+              <FileName>motor_control.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\motor_control.cpp</FilePath>
             </File>
             <File>
-              <FileName>pid_control.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\pid_control.c</FilePath>
+              <FileName>pid_control.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\pid_control.cpp</FilePath>
             </File>
             <File>
-              <FileName>turning_module.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\turning_module.c</FilePath>
+              <FileName>turning_module.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\turning_module.cpp</FilePath>
             </File>
             <File>
-              <FileName>turning_module.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\turning_module.h</FilePath>
+              <FileName>turning_module.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\turning_module.hpp</FilePath>
             </File>
             <File>
-              <FileName>utils.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\utils.h</FilePath>
+              <FileName>utils.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\utils.hpp</FilePath>
             </File>
             <File>
-              <FileName>utils.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\utils.c</FilePath>
+              <FileName>utils.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\utils.cpp</FilePath>
             </File>
             <File>
-              <FileName>communication.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\communication.c</FilePath>
+              <FileName>communication.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\communication.cpp</FilePath>
             </File>
             <File>
-              <FileName>communication.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\communication.h</FilePath>
+              <FileName>autopilot.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\autopilot.cpp</FilePath>
             </File>
             <File>
-              <FileName>autopilot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\autopilot.c</FilePath>
-            </File>
-            <File>
-              <FileName>autopilot.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\autopilot.h</FilePath>
+              <FileName>autopilot.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\autopilot.hpp</FilePath>
             </File>
             <File>
               <FileName>configs.h</FileName>
@@ -463,14 +459,39 @@
               <FilePath>.\f407\inc\configs.h</FilePath>
             </File>
             <File>
-              <FileName>path_tracking.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\f407\src\path_tracking.c</FilePath>
+              <FileName>path_tracking.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\path_tracking.cpp</FilePath>
             </File>
             <File>
-              <FileName>path_tracking.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\f407\inc\path_tracking.h</FilePath>
+              <FileName>path_tracking.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\path_tracking.hpp</FilePath>
+            </File>
+            <File>
+              <FileName>communication.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\communication.hpp</FilePath>
+            </File>
+            <File>
+              <FileName>subsystem.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\subsystem.hpp</FilePath>
+            </File>
+            <File>
+              <FileName>subsystem.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\subsystem.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>engine_module.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\src\engine_module.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>engine_module.hpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\f407\inc\engine_module.hpp</FilePath>
             </File>
           </Files>
         </Group>

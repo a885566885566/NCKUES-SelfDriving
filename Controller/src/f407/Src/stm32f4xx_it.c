@@ -23,8 +23,8 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "autopilot.h"
-#include "utils.h"
+#include "autopilot.hpp"
+#include "utils.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,10 +44,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern volatile AUTOPILOT_CONFIG Pilot;
-extern volatile BEEPER_CONFIG StatusBeeper;
-extern volatile COMMU_CONFIG Communicator;
-extern volatile COMMU_CONFIG NavigatorCommunicator;
+extern AutopilotSystem pilot;
+extern Buzzer buz;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -226,15 +224,7 @@ void ADC_IRQHandler(void)
 void CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
-  poll_for_msg(&Communicator, &(Pilot.driver_data));
-  // Get new msg from driver
-  switch(Pilot.driver_data.mode){
-    // Receive velocity infomation from driver
-    case CONF_COMMU_MODE_VELOCITY:
-      Pilot.driver_last_update_time = HAL_GetTick();
-      Pilot.car.velocity_rear = CONF_GEAR_RATIO * Pilot.driver_data.data.fvalue;
-      break;
-  }
+  pilot.engine_sys.updateMsg();
   /* USER CODE END CAN1_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan1);
   /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
@@ -249,9 +239,8 @@ void TIM6_DAC_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
   /* Turnning control main loop with 1kHz */
-  utils_beep_update(&StatusBeeper);
-  turning_update(&(Pilot.YawControl));
-  autopilot_car_model_predictor(&Pilot);
+  buz.update();
+  pilot.updateSubsystem();
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
@@ -266,7 +255,7 @@ void TIM7_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM7_IRQn 0 */
   /* Path tracking main loop with 100 Hz */
-  autopilot_kernel_update(&Pilot);
+  pilot.update();
   /* USER CODE END TIM7_IRQn 0 */
   HAL_TIM_IRQHandler(&htim7);
   /* USER CODE BEGIN TIM7_IRQn 1 */
@@ -281,11 +270,7 @@ extern uint32_t aaa;
 void CAN2_RX1_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN2_RX1_IRQn 0 */
-  aaa++;
-  static uint8_t available;
-  available = update_navigator_msg(&NavigatorCommunicator, &(Pilot.traj));
-  if (available > 0)
-    Pilot.navigator_last_update_time = HAL_GetTick();
+  pilot.updateMsg();
   /* USER CODE END CAN2_RX1_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan2);
   /* USER CODE BEGIN CAN2_RX1_IRQn 1 */
@@ -296,15 +281,7 @@ void CAN2_RX1_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc1)
 {
-  static float thr = 0;
-  Pilot.ADC_value = HAL_ADC_GetValue(hadc1);
-  if (Pilot.ADC_value < CONF_THROTTLE_MIN)  
-    thr = 0;
-  else
-    thr = (float)(Pilot.ADC_value - CONF_THROTTLE_MIN) / (CONF_THROTTLE_MAX - CONF_THROTTLE_MIN);
-  Pilot.car.throttle = thr;
-  //printf("\n\r ADC val == %d", adc_value);
-
+  pilot.throttle_update( HAL_ADC_GetValue(hadc1) );
   HAL_ADC_Start_IT(hadc1); // Re-Start ADC1 under Interrupt
                          // this is necessary because we don'use
                          // the Continuos Conversion Mode
