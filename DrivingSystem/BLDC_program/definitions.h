@@ -54,9 +54,15 @@
 #define CONF_CONTROL_VELOCITY_DT  1  // velocity feedback loop 1 ms
 #define CONF_CONTROL_VELOCITY_COUNT 2  // 2 * 500 us = 1 ms
 
-#define CONF_MODE_VELOCITY 'V'  // velocity, drive motor to specific speed 
-#define CONF_MODE_CURRENT 'C'   // current, drive motor to specific current 
-#define CONF_MODE_STOP  'S'     // stop, stop and release motor
+/* ---- CAN COMMUNICATION ---- */
+#define CONF_ID_OFFSET 4
+
+#define CONF_MODE_CURRENT 0   // current, drive motor to specific current 
+#define CONF_MODE_VELOCITY 1  // velocity, drive motor to specific speed 
+#define CONF_MODE_STOP  2   // stop, stop and release motor
+#define CONF_TERMINATE_ID 3
+
+typedef enum {MOTOR_RESET=0, MOTOR_STANBY} DRIVER_STATE;
 
 /* ---- CAN BUS SPI ---- */
 #define CONF_CENTRAL_CONTROLLER_ID 1

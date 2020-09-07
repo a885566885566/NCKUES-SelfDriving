@@ -4,8 +4,7 @@ extern CONTROL motor;
 extern MOTOR_STATE motor_state;
 
 void routine_init(ROUTINE* rou){
-    rou->cmd_tran.mode = CONF_MODE_VELOCITY;
-    rou->cmd_tran.id = CONF_MOTOR_DRIVER_ID;
+    rou->cmd_tran.state.ivalue = MOTOR_STANBY;
     rou->last_report_time = 0;
 }
 
@@ -15,24 +14,24 @@ void command_process(ROUTINE* const rou, COMMU* const commu){
         Serial.print("Get ");
         Serial.print(rou->cmd_reci.mode);
         Serial.print(", ");
-        Serial.println(rou->cmd_reci.data.fvalue);
+        Serial.println(rou->cmd_reci.current.fvalue);
         //commu_debug(commu, &cmd);
         
         switch (rou->cmd_reci.mode){
         case CONF_MODE_VELOCITY:
-            if (rou->cmd_reci.data.fvalue < CONF_VELOCITY_THRESHOLD)
+            if (rou->cmd_reci.velocity.fvalue < CONF_VELOCITY_THRESHOLD)
                 control_set_mode(&motor, CONTROL_NONE);
             else{
                 control_set_mode(&motor, CONTROL_VELOCITY);
-                control_set_speed(rou->cmd_reci.data.fvalue);
+                control_set_speed(rou->cmd_reci.velocity.fvalue);
             }
             break;
         case CONF_MODE_CURRENT:
-            if (rou->cmd_reci.data.fvalue < CONF_CURRENT_THRESHOLD)
+            if (rou->cmd_reci.current.fvalue < CONF_CURRENT_THRESHOLD)
                 control_set_mode(&motor, CONTROL_NONE);
             else{
                 control_set_mode(&motor, CONTROL_CURRENT);
-                control_set_current(rou->cmd_reci.data.fvalue);
+                control_set_current(rou->cmd_reci.current.fvalue);
             }
             break;
         case CONF_MODE_STOP:
@@ -49,9 +48,14 @@ void motor_info_report(ROUTINE* rou, COMMU* const commu, const MOTOR_STATE* cons
     static uint32_t now_time = 0;
     now_time = millis();
     if( now_time - rou->last_report_time > CONF_REPORT_INTERVAL){
-        rou->cmd_tran.data.fvalue = state->velocity;
+        rou->cmd_tran.velocity.fvalue = state->velocity;
+        rou->cmd_tran.current.fvalue = state->current;
+        rou->cmd_tran.state.ivalue = MOTOR_STANBY;
         //rou->cmd_tran.data.fvalue = 3.697;
-        commu_send(commu, &(rou->cmd_tran));
+        
+        commu_send(commu, CONF_MODE_CURRENT, &(rou->cmd_tran.current));
+        commu_send(commu, CONF_MODE_VELOCITY, &(rou->cmd_tran.velocity));
+        commu_send(commu, CONF_TERMINATE_ID, &(rou->cmd_tran.state));
         rou->last_report_time = now_time;
         /*
         Serial.print("CAN= ");

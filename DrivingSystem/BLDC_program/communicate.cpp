@@ -57,22 +57,40 @@ void commu_read(COMMU* const commu, COMMAND* const cmd){
     #endif
 
     #ifdef COMMUNICATE_CANBUS
-    cmd->id = commu->can_msg_reci.can_id;
-    cmd->mode = char(commu->can_msg_reci.data[0]);
-    for (int i=1; i<commu->can_msg_reci.can_dlc; i++)
-        cmd->data.array[i-1] = commu->can_msg_reci.data[i];
+    uint8_t filter = commu->can_msg_reci.can_id % CONF_ID_OFFSET;
+    uint8_t mask = commu->can_msg_reci.can_id >> CONF_ID_OFFSET;
+    if (mask == CONF_MOTOR_DRIVER_ID){
+        switch(filter){
+            case CONF_MODE_CURRENT:
+                cmd->mode = CONF_MODE_CURRENT;
+                for (int i=0; i<commu->can_msg_reci.can_dlc; i++)
+                    cmd->current.array[i] = commu->can_msg_reci.data[i];
+                break;
+            case CONF_MODE_VELOCITY:
+                cmd->mode = CONF_MODE_VELOCITY;
+                for (int i=0; i<commu->can_msg_reci.can_dlc; i++)
+                    cmd->velocity.array[i] = commu->can_msg_reci.data[i];
+                break;
+            case CONF_MODE_STOP:
+                cmd->mode = CONF_MODE_STOP;
+                for (int i=0; i<commu->can_msg_reci.can_dlc; i++)
+                    cmd->state.array[i] = commu->can_msg_reci.data[i];
+                break;
+            case CONF_TERMINATE_ID:
+                break;
+        }
+    }
     #endif
 }
 
 #ifdef COMMUNICATE_CANBUS
-void commu_send(COMMU* const commu, COMMAND* const cmd){
+void commu_send(COMMU* const commu, uint8_t id, COMMU_DATA* const data){
     #ifdef COMMUNICATE_CANBUS
-    commu->can_msg_tran.data[0] = byte(cmd->mode);
-    commu->can_msg_tran.can_id = cmd->id;
-    commu->can_msg_tran.can_dlc = 8;
+    commu->can_msg_tran.can_id = (CONF_MOTOR_DRIVER_ID<<CONF_ID_OFFSET) + id;
+    commu->can_msg_tran.can_dlc = CAN_DATA_LEN;
     
     for (int i=0; i<CAN_DATA_LEN; i++)
-        commu->can_msg_tran.data[i+1] = cmd->data.array[i];
+        commu->can_msg_tran.data[i] = data->array[i];
     mcp2515.sendMessage(&(commu->can_msg_tran));
     #endif
 }
