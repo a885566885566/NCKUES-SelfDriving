@@ -5,6 +5,8 @@
 
 #include <sl/Camera.hpp>
 
+#include <socket_pi.h>
+
 using namespace std;
 using namespace sl;
 void print(string msg_prefix, ERROR_CODE err_code = ERROR_CODE::SUCCESS, string msg_suffix = "");
@@ -29,17 +31,18 @@ void retrieve(){
         auto returned_stated = zed.retrieveObjects(objects, detection_parameters_rt);
 
         if ((returned_stated == ERROR_CODE::SUCCESS) && objects.is_new) {
-            now_clock = clock();
-            cout << "== Retrieve-> "<< (float)(now_clock - pre_clock) / CLOCKS_PER_SEC << endl;
-            pre_clock = now_clock;
-            cout << "Detected " << objects.object_list.size() << " Object(s)" << endl;
+            //now_clock = clock();
+            //cout << "== Retrieve-> "<< (float)(now_clock - pre_clock) / CLOCKS_PER_SEC << endl;
+            //pre_clock = now_clock;
+            /*cout << "Detected " << objects.object_list.size() << " Object(s)" << endl;
             for( int i=0; i<objects.object_list.size(); i++){
                 auto bb = objects.object_list[i].bounding_box;
                 if (!bb.empty()){
                     sl::float3 center = objects.object_list[i].position;
                     cout << "Obj: " << center.x <<", "<<center.y<<", "<<center.x<<endl;
                 }
-            }
+            }*/
+            send_obs_msg(objects);
         }
     }
 }
@@ -96,8 +99,9 @@ int main(int argc, char **argv) {
         pre_clock = now_clock;
         auto tracking_state = zed.getPosition(cam_pose, REFERENCE_FRAME::WORLD);
         if (tracking_state == POSITIONAL_TRACKING_STATE::OK){
-            sl::float3 center = cam_pose.getEulerAngles();
-            cout << "Pose: "<< center.x <<", "<<center.y<<", "<<center.x<<endl;
+            //sl::float3 center = cam_pose.getEulerAngles();
+            //cout << "Pose: "<< center.x <<", "<<center.y<<", "<<center.x<<endl;
+            send_pose_msg(cam_pose);
         }
         //retrieve();
         //returned_stated = zed.retrieveObjects(objects, detection_parameters_rt);
