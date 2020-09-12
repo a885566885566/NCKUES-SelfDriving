@@ -324,12 +324,12 @@ if __name__ == "__main__":
     import WaypointsPlanner as wp
     import Simulation as si 
     import VelocityProfile
-    import Perception
+    import Perception_socket_version
 
     vel_config = VelocityProfile.VelocityConfig(10, 0.1, 0.1, -0.5)
     way = wp.WaypointsPlanner(vel_config)
     mp = MotionPlanner()
-    sensor = Perception.Listener()
+    sensor = Perception_socket_version.Listener()
     
     sim = si.Simulation(way, 10)
     
@@ -339,9 +339,8 @@ if __name__ == "__main__":
 
     # simulate some obstacles
     #sim_obs = way.waypoints[:,0:2] + 200*(np.random.rand(way.waypoints.shape[0], 2) - 0.5)
-    position = sensor.get_current_position()
-    current_state = np.array([position[0], position[2], position[3], 0], dtype=np.float64)
-    last_position = position
+    position = sensor.get_current_pose()
+    current_state = np.array([position[0], position[1], position[2], position[3]], dtype=np.float64)
     plt.figure(num="Global Coordinate Map")
     last_best_path_idx = 5
     
@@ -360,7 +359,7 @@ if __name__ == "__main__":
         #   2. if there is no obstacle, just calculate the path to the waypoint amd send the path's a, b to the controller.
         current_goal_waypoint = way.load_waypoint(current_state) 
         #TODO: use Perception.py to get the obstacle information
-        obstacles = np.array([1])
+        obstacles = sensor.get_obstacles()
         # if there is obstacle
         if obstacles.size > 0:
             target_set, path_pts, trajectory_coefficient, slope_for_obstacle_filter = mp.generate_path(current_state, current_goal_waypoint, 11, 2)
@@ -383,11 +382,11 @@ if __name__ == "__main__":
         
         #%% update current state     
         position = sensor.get_current_position()
-        last_position = position
         current_state[0] = position[0]
-        current_state[1] = position[2]
-        current_state[2] = position[3]
-        current_state[4] = np.linalg.norm([position[0], position[2]] - [last_position[0], last_position[2]], axis=2)/(position[-1] - last_position[-1])
+        current_state[1] = position[1]
+        current_state[2] = position[2]
+        current_state[3] = position[3]
+
         #current_state = current_goal_waypoint 
         
         plt.pause(0.1)
