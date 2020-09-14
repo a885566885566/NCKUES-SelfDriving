@@ -1,5 +1,6 @@
 import numpy as np
 import Utils
+import Path 
 import matplotlib.pyplot as plt
 
 class Car():
@@ -31,12 +32,22 @@ class Car():
         self.beta = 0   # Velocity angle relative to yaw
         self.yaw = 0    # Heading
         self.steering = 0   # in Radiun
+        # Define maximum steering angle
+        self.max_steer = np.radians(30)
 
+    def set_state(self, current_state):
+        self.x = current_state[0]
+        self.y = current_state[1]
+        self.yaw = current_state[2]
+        self.v = current_state[3]
     """
     Update kinectic parameters according to current steering 
     angle and rear wheel speed.
     """
-    def update(self, dt):
+    def update(self, steer, acc, dt):
+        # Constrain steering angle
+        self.steering = np.clip(steer, -self.max_steer, self.max_steer)
+
         self.beta = np.arctan(self.lr * np.tan(self.steering) / self.car_length)
         self.vf = self.v / np.cos(self.steering)
         local_p = self.vf * dt * np.array([np.cos(self.beta), np.sin(self.beta)])
@@ -44,6 +55,9 @@ class Car():
                 np.array([self.x, self.y, self.yaw, self.vf]), 
                 local_p)
         self.yaw += self.v * dt * np.tan(self.steering) / self.car_length 
+
+        # Update velocity
+        self.v += acc * dt 
 
     def get_current_state(self):
         return np.array([self.x, self.y, self.yaw, self.v])
@@ -65,12 +79,12 @@ class Simulation():
         plt.scatter(self.waypoints[:, 0], self.waypoints[:, 1], marker=".", c=color)
         return
 
-    def plot_obs(self, obs, color="gray"):
+    def plot_obs(self, obs, color="purple"):
         obs = np.squeeze(obs)
         if len(obs.shape) >= 2:
-            plt.scatter(obs[:,0], obs[:,1], marker=".", color=color)
+            plt.scatter(obs[:,0], obs[:,1], marker="o", color=color)
         else:
-            plt.scatter(obs[0], obs[1], marker=".", color=color)
+            plt.scatter(obs[0], obs[1], marker="o", color=color)
         return
     """
     Plot line segment with point given in local coordinate.
@@ -137,4 +151,10 @@ class Simulation():
             
         return
     """
+
+    def plot_path(self, path, args='g-'):
+        [x, y, yaw, v] = path.sampling().T
+        self.plot_with_local(
+                path.origin, 
+                np.array([x, y]).T, args, scale=1)
 

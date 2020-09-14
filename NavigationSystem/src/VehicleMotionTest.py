@@ -2,22 +2,25 @@ import numpy as np
 import Simulation
 import matplotlib.pyplot as plt
 import Utils 
+import Path 
 
 class Controller():
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
+    def __init__(self):
+        self.path = None  
 
     def calc_slope(self, x):
-        return 3 * self.a * x**2 + 2 * self.b * x
+        # x in local coordinate
+        return 3 * self.path.a * x**2 + 2 * self.path.b * x
 
     def calc_y(self, x):
-        return self.a * (x**3) + self.b * (x**2)
+        # x in local coordinate
+        return self.path.a * (x**3) + self.path.b * (x**2)
 
     """
     y = s * x + b
     """
     def calc_offset(self, slope, x, y):
+        # x and y in local coordinate
         return y - slope * x
 
     """
@@ -38,17 +41,36 @@ class Controller():
             angle += 2*np.pi
         return angle
 
+    def update_path(self, _path):
+        pre_vel = 0 if self.path is None else self.path.target[3]
+        self.path = _path 
+        self.path.origin[3] = pre_vel
 
 class LookAheadStanley(Controller):
-    def __init__(self, a, b):
-        super().__init__(a, b)
+    def __init__(self):
+        super().__init__()
         self.max_steering_angle = 0.7
 
-    """
-    Calculate the approximation look ahead point.
-    """
-    def calc_lookahead(self, x, y, v, yaw, t):
-        # Calculate the line on the reference trajectory refer to current position 
+    def calc_lookahead(self, car, t):
+        """
+        Calculate the approximation look ahead point.
+        x, y, v in global coordinate, it would transfer to 
+        local coordinate which origin point was specified 
+        in path 
+        Input:
+            car: Simulation Car object
+        Output:
+            lookahead point: 2d array 
+        """
+        # Transfer to local coordinate
+        current_state = car.get_current_state()
+        [x, y] = Utils.trans_global_to_local(
+                self.path.origin, current_state[0:2])
+        yaw = current_state[2] - self.path.origin[2]
+        v = current_state[3]
+
+        # Calculate the line on the reference trajectory 
+        # refer to current position 
         # y = s1 * x + b1, x1 and y1 pass through the line
         s1 = self.calc_slope(x)
         y1 = self.calc_y(x) 
@@ -73,9 +95,23 @@ class LookAheadStanley(Controller):
         return xh, yh 
 
     def stanley(self, car, look, k):
+        """
+        Calculate steering angle command.
+        Input: 
+            car: Simulation Car object
+            look: look ahead point 
+            k: steering control parameter
+        Output:
+            steering angle: in radians
+        """
+        [x, y] = Utils.trans_global_to_local(
+                self.path.origin, np.array((car.x, car.y)))
+        yaw = car.yaw - self.path.origin[2]
+
+
         # Inner dot
-        e = (car.x-look[0])*(np.cos(car.yaw+np.pi/2)) + (car.y-look[1])*(np.sin(car.yaw+np.pi/2))
-        theta = car.yaw - np.arctan(self.calc_slope(look[0]))
+        e = (x-look[0])*(np.cos(yaw+np.pi/2)) + (y-look[1])*(np.sin(yaw+np.pi/2))
+        theta = yaw - np.arctan(self.calc_slope(look[0]))
 
         steering = -( theta + np.arctan(k*e/(car.vf+1)) )
         s = self.max_steering_angle 
@@ -84,7 +120,7 @@ class LookAheadStanley(Controller):
 
 class StanleyControl(Controller):
     def __init__(self, a, b):
-        super().__init__(a, b)
+        super().__init__()
         self.max_steering_angle = 0.7
 
     def calc_lookahead(self, x, y, v, yaw, t):
