@@ -14,6 +14,8 @@ class Listener():
         self.receiver = socket_server.Communicator()
         self.pose = []
         self.obstacles = {}
+        self.coord_record_x = [0, 0, 0, 0]
+        self.coord_record_y = [0, 0, 0, 0]
         self.daemon = threading.Thread(target = self.update_data)
         
         while not self.system_booted:
@@ -42,7 +44,9 @@ class Listener():
                                                         data[1]['oy'],
                                                         data[1]['oz'],
                                                         data[1]['ow']),
-                              0 ]
+                              self.calculate_velocity(data[1]['x']/1000,
+                                                      data[1]['y']/1000)
+                              ]
                 # print("POSE is coming:", self.pose)
             elif data[0] == "OBS":
                 #print(data)
@@ -66,19 +70,43 @@ class Listener():
                 if self.obstacles[label_id]['update'] == 0:
                     del self.obstacles[label_id]
     
+    def calculate_velocity(self, xi , yi):
+        # This function return velocity with unit m/s
+        self.coord_record_x.pop(0)
+        self.coord_record_x.append(xi)
+        self.coord_record_y.pop(0)
+        self.coord_record_y.append(yi)
+        # dx/dt = (11/6)*x(i) + (-3)*x(i-1) + (3/2)*x(i-2) + (-1/3)*x(i-3)
+        dx = (11/6)*self.coord_record_x[3] + \
+             (-3)  *self.coord_record_x[2] + \
+             (3/2) *self.coord_record_x[1] + \
+             (-1/3)*self.coord_record_x[0]
+        dy = (11/6)*self.coord_record_y[3] + \
+             (-3)  *self.coord_record_y[2] + \
+             (3/2) *self.coord_record_y[1] + \
+             (-1/3)*self.coord_record_y[0]
+
+        velocity =  math.sqrt( dx**2 + dy**2 )
+        print("re_x:", self.coord_record_x)
+        print("re_y:", self.coord_record_y)
+        print("dx:", dx, "\ndy:", dy)
+        print("v : ", velocity)
+        return velocity
+
     def quaternion_to_yaw(self, x, y, z, w):
         t3 = 2.0 * (w * z + x * y)
         t4 = 1.0 - 2.0 * (y * y + z * z)
         return math.atan2(t3, t4)
 
     def get_current_pose(self):
-        return numpy.array([self.pose[0], self.pose[1], self.pose[3], self.pose[4]])
+        #[x, y, yaw, velocity]
+        return numpy.array([self.pose[0]/1000, self.pose[1]/1000, self.pose[3]*52.79, self.pose[4]])
 
     def get_obstacles(self):
         obstacles = []
         for label_id in self.obstacles:
-            temp = [self.obstacles[label_id]['x'],
-                    self.obstacles[label_id]['y'],
+            temp = [self.obstacles[label_id]['x']/1000,
+                    self.obstacles[label_id]['y']/1000,
                     radius_table[self.obstacles[label_id]['label']-1]]
             obstacles.append(temp)
         return numpy.array(obstacles)
@@ -94,9 +122,13 @@ if __name__ == '__main__':
     while True:
         pose = listener.get_current_pose()
         obs = listener.get_obstacles()
-        print("pose:\nx:", pose[0])
-        print("y:", pose[1])
-        print("yaw:", pose[2])
-        print("velocity:", pose[3])
-        print("obs:\n", obs)
+        #print("\npose:\nx:", pose[0])
+        #print("y:", pose[1])
+        #print("z:", listener.pose[2]/1000)
+        #print("yaw:", pose[2])
+        #print("velocity:", pose[3])
+        #print(len(obs), " obs dected.")
+        for id in obs:
+             print("obs:", id, "\n")
+             time.sleep(1)
 
